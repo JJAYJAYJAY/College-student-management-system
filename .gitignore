@@ -33,3 +33,7 @@ build/
 .vscode/
 
 backend/datavenv/
+
+*.pyc
+*.pyo
+*.pyd
