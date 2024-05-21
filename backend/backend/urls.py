@@ -16,8 +16,8 @@ Including another URLconf
 """
 
 from django.urls import path
-from .views import login
+from .views import Login
 
 urlpatterns = [
-    path('api/login/', login),
+    path('api/login/', Login.as_view(), name='login'),
 ]
