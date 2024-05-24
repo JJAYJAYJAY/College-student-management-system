@@ -1,7 +1,7 @@
 from django.http import JsonResponse
 from rest_framework.views import APIView
 
-from .service import LoginService, StudentService
+from .service import LoginService, StudentService, TeacherService
 from uitls.response import Response
 from uitls.tools import *
 
@@ -62,3 +62,14 @@ class GetCourseOffering(APIView):
             return Response().ok(response, status=200)
         else:
             return Response().fail('获取课程信息失败', status=400)
+
+
+class GetTeacherInfo(APIView):
+    def post(self, request):
+        # 请求头获得token
+        token = get_token_from_request(request)
+        response = TeacherService.get_teacher_info(token)
+        if response:
+            return Response().ok(response, status=200)
+        else:
+            return Response().fail('获取教师信息失败', status=400)

@@ -16,7 +16,7 @@ Including another URLconf
 """
 
 from django.urls import path
-from .views import Login, GetStudentInfo, GetStudentGrade, GetStudentCourse, GetCourseOffering
+from .views import Login, GetStudentInfo, GetStudentGrade, GetStudentCourse, GetCourseOffering, GetTeacherInfo
 
 urlpatterns = [
     path('api/login', Login.as_view(), name='login'),
@@ -24,4 +24,5 @@ urlpatterns = [
     path('api/student/get_student_grade', GetStudentGrade.as_view(), name='grade'),
     path('api/student/get_student_course', GetStudentCourse.as_view(), name='grade'),
     path('api/student/get_course_offering', GetCourseOffering.as_view(), name='grade'),
+    path('api/teacher/get_teacher_info', GetTeacherInfo.as_view(), name='teacher'),
 ]

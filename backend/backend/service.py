@@ -47,7 +47,7 @@ class StudentService:
                 select 
                     student_id,
                     student_name, 
-                    sex, 
+                    if(Sex=0,'女','男') as sex,
                     age, 
                     had_credit, 
                     region,   
@@ -204,6 +204,40 @@ class StudentService:
                 result = safe_sql(sql, [classId])
                 response["detailCourse"] = convert_array_keys_to_camel_case(result)
                 return response
+            else:
+                return None
+        except jwt.ExpiredSignatureError:
+            return None
+        except jwt.InvalidTokenError:
+            return None
+        except Exception as e:
+            return None
+
+
+class TeacherService:
+    def __init__(self):
+        pass
+
+    @staticmethod
+    def get_teacher_info(token):
+        try:
+            payload = jwt.decode(token, settings.SECRET_KEY, algorithms=['HS256'])
+            account = payload['account']
+            role = payload['role']
+            if role == 1:
+                sql = """
+                select 
+                    teacher_id,
+                    teacher_name,
+                    sex,
+                    age,
+                    job_title,
+                    phone
+                from ljj_teacher
+                where account = %s
+                """
+                result = safe_sql(sql, [account])
+                return result[0]
             else:
                 return None
         except jwt.ExpiredSignatureError:
