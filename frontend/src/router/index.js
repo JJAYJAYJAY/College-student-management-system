@@ -76,6 +76,11 @@ const router = createRouter({
           path:'teacherInfoInput',
           name:'teacherInfoInput',
           component:()=>import('@/views/admin/teacherInfoInput.vue')
+        },
+        {
+          path:'adminProfile',
+          name:'adminProfile',
+          component:()=>import('@/views/admin/personalInfo.vue')
         }
       ]
     }

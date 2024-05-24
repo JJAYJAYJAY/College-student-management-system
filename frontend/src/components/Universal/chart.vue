@@ -9,6 +9,7 @@
 <script setup lang="js">
 import {onMounted, ref, watch} from "vue";
 import * as echarts from "echarts";
+import emitter from "@/utils/mitt.js";
 
 let chart = ref();
 const props=defineProps({
@@ -40,5 +41,9 @@ onMounted(()=>{
   props.option && myChart.setOption(props.option);
 })
 
+emitter.on('resize',()=>{
+  let myChart = echarts.init(chart.value, props.theme);
+  myChart.resize()
+})
 
 </script>

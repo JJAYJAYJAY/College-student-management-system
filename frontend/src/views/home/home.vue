@@ -26,7 +26,7 @@
           <HomeMenu class="Menu" :menu-list="menuList"/>
         </a-layout-sider>
         <a-layout-content class="mainContent">
-          <RouterView />
+          <RouterView style="height: 100%;width: 100%"/>
         </a-layout-content>
       </a-layout>
     </a-layout-content>
@@ -39,9 +39,16 @@ import HomeMenu from "@/components/home/HomeMenu.vue";
 import {ref} from "vue";
 import {RouterView} from "vue-router";
 import {MENU} from "@/constant/homeConfig.js";
+import {useRouter} from "vue-router";
+import emitter from "@/utils/mitt.js";
 
 const menuList=ref({})
 
-menuList.value = MENU.admin
 
+const router = useRouter();
+//获取get参数
+const {query} = router.currentRoute.value;
+// console.log(query)
+// console.log(router.currentRoute.value)
+menuList.value=MENU[query.role]
 </script>

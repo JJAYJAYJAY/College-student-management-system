@@ -1,5 +1,14 @@
 export const MENU = {
     student: {
+        '个人信息':{
+            icon:'icon-user',
+            menuItem:[
+                {
+                    name:"个人信息",
+                    path:"studentProfile"
+                }
+            ]
+        },
         '信息查询':{
             icon:'icon-apps',
             menuItem:[
@@ -16,33 +25,24 @@ export const MENU = {
                     path:"courseOffering"
                 }
             ]
-        },
-        '个人信息':{
-            icon:'icon-user',
-            menuItem:[
-                {
-                    name:"个人信息",
-                    path:"studentProfile"
-                }
-            ]
         }
     },
     teacher:{
-        '信息查询':{
-            icon:'icon-apps',
-            menuItem:[
-                {
-                    name:"任课信息查询",
-                    path:"courseInfo"
-                }
-            ]
-        },
         '个人信息':{
             icon:'icon-user',
             menuItem:[
                 {
                     name:"个人信息",
                     path:"teacherProfile"
+                }
+            ]
+        },
+        '信息查询':{
+            icon:'icon-apps',
+            menuItem:[
+                {
+                    name:"任课信息查询",
+                    path:"courseInfo"
                 }
             ]
         },
@@ -57,6 +57,15 @@ export const MENU = {
         }
     },
     admin:{
+        '个人信息':{
+            icon:'icon-user',
+            menuItem:[
+                {
+                    name:"个人信息",
+                    path:"adminProfile"
+                }
+            ]
+        },
         "信息查询":{
             icon:'icon-apps',
             menuItem:[

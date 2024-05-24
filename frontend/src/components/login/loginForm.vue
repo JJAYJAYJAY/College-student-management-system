@@ -99,6 +99,7 @@ import {reactive} from "vue";
 import {useRouter} from "vue-router";
 import axios from "axios";
 import {login} from "@/api/user.js";
+import emitter from "@/utils/mitt.js";
 
 let form= reactive({
   username: "",
@@ -108,11 +109,43 @@ let form= reactive({
 const router= useRouter();
 
 const showFail = () => {
-
+  
 }
 
 const handleSubmit = (e)=>{
   e.preventDefault();
-
+  // 转跳并传参
+  login(form).then(res=>{
+    if (res.status === 200){
+      switch (res.data.data.role){
+        case 0:
+          router.push({
+            path: '/home/studentProfile',
+            query: {
+              role:'student'
+            }
+          });
+          break;
+        case 1:
+          router.push({
+            path: '/home/teacherProfile',
+            query: {
+              role:'teacher'
+            }
+          });
+          break;
+        case 2:
+          router.push({
+            path: '/home/adminProfile',
+            query: {
+              role:'admin'
+            }
+          });
+          break;
+      }
+    }else{
+      showFail();
+    }
+  })
 }
 </script>
