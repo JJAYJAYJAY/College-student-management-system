@@ -15,12 +15,14 @@ class LoginService:
     def login(account: str, password: str) -> Any | None:
         sql = "select role from Ljj_Account where account = %s and password = %s"
         result = safe_sql(sql, [account, password])
-
+        sql = "select class_id from Ljj_Student where account = %s"
+        class_id = safe_sql(sql, [account])
         if result:
             response = {
                 "token": jwt.encode({"account": account, "role": result[0]["role"]}, settings.SECRET_KEY,
                                     algorithm='HS256'),
-                "role": result[0]["role"]
+                "role": result[0]["role"],
+                "classId":  class_id[0]["class_id"]
             }
             return response
         else:
@@ -125,6 +127,39 @@ class StudentService:
                 """
                 result = safe_sql(sql, [account])
                 response["course_grade"] = convert_array_keys_to_camel_case(result)
+                return response
+            else:
+                return None
+        except jwt.ExpiredSignatureError:
+            return None
+        except jwt.InvalidTokenError:
+            return None
+        except Exception as e:
+            return None
+
+    @staticmethod
+    def get_student_course(token, term, classId):
+        try:
+            payload = jwt.decode(token, settings.SECRET_KEY, algorithms=['HS256'])
+            role = payload['role']
+            response = {}
+            if role == 0:
+                sql = """
+                select 
+                    course_name,
+                    credit,
+                    teacher_name,
+                    hours,
+                    test_method,
+                    term
+                from ljj_classcourse
+                where term = %s and class_id = %s
+                """
+                result = safe_sql(sql, [term, classId])
+                response["course"] = convert_array_keys_to_camel_case(result)
+                sql = "select distinct term from ljj_classcourse where class_id = %s"
+                result = safe_sql(sql, [classId])
+                response["term"] = convert_array_keys_to_camel_case(result)
                 return response
             else:
                 return None

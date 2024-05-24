@@ -151,8 +151,10 @@ const columns = ref([
     }
   }
 ]);
-
 const scoreData = ref([])
+scoreData.value=[]
+const scoreTotalData = ref([])
+
 watch(scoreData, (newData) => {
   //统计学期类型
   let termSet = new Set()
@@ -205,136 +207,6 @@ watch(scoreData, (newData) => {
   })
 })
 
-scoreData.value=[
-  {
-    courseName: "高等数学",
-    testMethod: "考试",
-    credit: 4,
-    hour: 64,
-    term: "2022-2023上",
-    grade: 96,
-    point: 4.6
-  },
-  {
-    courseName: "线性代数",
-    testMethod: "考试",
-    credit: 4,
-    hour: 64,
-    term: "2022-2023下",
-    grade: 83,
-    point: 3.6
-  },
-  {
-    courseName: "大学英语",
-    testMethod: "考试",
-    credit: 4,
-    hour: 64,
-    term: "2022-2023上",
-    grade: 72,
-    point: 2.6
-  },
-  {
-    courseName: "大学体育",
-    testMethod: "考试",
-    credit: 2,
-    hour: 32,
-    term: "2022-2023下",
-    grade: 61,
-    point: 1.6
-  },
-  {
-    courseName: "大学物理",
-    testMethod: "考试",
-    credit: 4,
-    hour: 64,
-    term: "2022-2023上",
-    grade: 56,
-    point: 1.6
-  },
-  {
-    courseName: "计算机网络原理",
-    testMethod: "考试",
-    credit: 4,
-    hour: 64,
-    term: "2023-2024上",
-    grade: 78,
-    point: 3.6
-  },
-  {
-    courseName: "数据库原理",
-    testMethod: "考试",
-    credit: 4,
-    hour: 64,
-    term: "2023-2024下",
-    grade: 89,
-    point: 4.0
-  },
-  {
-    courseName: "数据结构",
-    testMethod: "考试",
-    credit: 4,
-    hour: 64,
-    term: "2023-2024上",
-    grade: 92,
-    point: 4.3
-  },
-  {
-    courseName: "操作系统",
-    testMethod: "考试",
-    credit: 4,
-    hour: 64,
-    term: "2023-2024下",
-    grade: 85,
-    point: 3.9
-  },
-  {
-    courseName: "编译原理",
-    testMethod: "考试",
-    credit: 4,
-    hour: 64,
-    term: "2024-2025上",
-    grade: 77,
-    point: 3.6
-  },
-  {
-    courseName: "软件工程",
-    testMethod: "考试",
-    credit: 4,
-    hour: 64,
-    term: "2024-2025下",
-    grade: 88,
-    point: 4.0
-  },
-  {
-    courseName: "人工智能",
-    testMethod: "考试",
-    credit: 4,
-    hour: 64,
-    term: "2024-2025上",
-    grade: 91,
-    point: 4.3
-  },
-  {
-    courseName: "大数据",
-    testMethod: "考试",
-    credit: 4,
-    hour: 64,
-    term: "2024-2025下",
-    grade: 93,
-    point: 4.3
-  },
-  {
-    courseName: "物联网",
-    testMethod: "考试",
-    credit: 4,
-    hour: 64,
-    term: "2025-2026上",
-    grade: 94,
-    point: 4.6
-  }
-]
-
-const scoreTotalData = ref([])
 const chartOption = ref({
   title: {
     text: "历学期gpa统计",
@@ -367,7 +239,6 @@ const chartOption = ref({
     }
   ]
 })
-
 
 onMounted(()=>{
   getStudentGrade().then(res=>{
@@ -416,7 +287,6 @@ const setTermGPA = (data) => {
     ]
   }
 }
-
 
 const setDetailData = (data) => {
   scoreData.value = data.courseGrade.map((item) => {

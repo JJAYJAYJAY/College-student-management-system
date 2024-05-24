@@ -8,10 +8,11 @@ export function getStudentInfo(){
     })
 }
 
-export function getStudentCourse(){
+export function getStudentCourse(data){
     return axios.request({
         method: 'post',
         url: '/student/get_student_course',
+        data,
         baseURL: BASEURL
     })
 }

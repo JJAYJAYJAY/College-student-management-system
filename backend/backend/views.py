@@ -37,3 +37,17 @@ class GetStudentGrade(APIView):
             return Response().ok(response, status=200)
         else:
             return Response().fail('获取学生成绩失败', status=400)
+
+
+class GetStudentCourse(APIView):
+    def post(self, request):
+        # 请求头获得token
+        token = get_token_from_request(request)
+        term = request.data.get('term')
+        classId = request.data.get('classId')
+        response = StudentService.get_student_course(token, term, classId)
+        if response:
+            return Response().ok(response, status=200)
+        else:
+            return Response().fail('获取学生课程失败', status=400)
+

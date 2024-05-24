@@ -97,10 +97,9 @@
 <script setup lang="js">
 import {reactive} from "vue";
 import {useRouter} from "vue-router";
-import axios from "axios";
 import {login} from "@/api/user.js";
-import emitter from "@/utils/mitt.js";
 import useUserStore from "@/stores/userStore.js";
+import {Message} from "@arco-design/web-vue";
 
 let form= reactive({
   username: "",
@@ -110,7 +109,7 @@ let form= reactive({
 const router= useRouter();
 
 const showFail = () => {
-
+  Message.error('登录失败，请检查用户名和密码');
 }
 
 const userStore = useUserStore();
@@ -121,10 +120,10 @@ const handleSubmit = (e)=>{
   login(form).then(res=>{
     if (res.status === 200){
         localStorage.setItem('token',res.data.data.token);
-        // axios.defaults.headers.common['Authorization'] = 'Bearer '+res.data.data.token;
         switch (res.data.data.role){
         case 0:
           userStore.setRole('student');
+          useUserStore().setClassId(res.data.data.classId);
           router.push({path: '/home/studentProfile'});
           break;
         case 1:

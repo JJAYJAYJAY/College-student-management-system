@@ -6,13 +6,19 @@ const useUserStore=defineStore(
     () => {
         const user = ref({
             role: '',
+            classId: '',
         })
         const setRole = (newRole) => {
            user.value.role = newRole;
         }
+
+        const setClassId = (newClassId) => {
+            user.value.classId = newClassId;
+        }
         return {
             user,
-            setRole
+            setRole,
+            setClassId
         }
     }
 )
