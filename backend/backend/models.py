@@ -1,94 +1,100 @@
 from django.db import models
 
 
-class Major(models.Model):
-    major_id = models.CharField(primary_key=True, max_length=50)
-    major_name = models.CharField(max_length=100)
+class LjjMajor(models.Model):
+    Major_id = models.CharField(max_length=50, primary_key=True)
+    Major_name = models.CharField(max_length=100, null=False)
 
     class Meta:
         db_table = 'Ljj_Major'
+        verbose_name = '专业'
+        verbose_name_plural = '专业'
 
 
-class Class(models.Model):
-    class_id = models.CharField(primary_key=True, max_length=50)
-    class_name = models.CharField(max_length=100)
-    major = models.ForeignKey(Major, on_delete=models.CASCADE)
+class LjjClass(models.Model):
+    Class_id = models.CharField(max_length=50, primary_key=True)
+    Class_name = models.CharField(max_length=100, null=False)
+    Major_id = models.ForeignKey(LjjMajor, on_delete=models.CASCADE)
 
     class Meta:
         db_table = 'Ljj_Class'
+        verbose_name = '班级'
+        verbose_name_plural = '班级'
 
 
-class Course(models.Model):
-    course_id = models.CharField(primary_key=True, max_length=50)
-    course_name = models.CharField(max_length=100)
-    major = models.ForeignKey(Major, on_delete=models.CASCADE)
-    credit = models.IntegerField()
-    hours = models.IntegerField()
-    term = models.CharField(max_length=20)
+class LjjCourse(models.Model):
+    Course_id = models.CharField(max_length=50, primary_key=True)
+    Course_name = models.CharField(max_length=100, null=False)
+    Test_method = models.CharField(max_length=20, null=False)
+    Credit = models.IntegerField(null=False)
+    Hours = models.IntegerField(null=False)
+    Term = models.CharField(max_length=20, null=False)
 
     class Meta:
         db_table = 'Ljj_Course'
+        verbose_name = '课程'
+        verbose_name_plural = '课程'
 
 
-class Student(models.Model):
-    student_id = models.CharField(primary_key=True, max_length=50)
-    student_name = models.CharField(max_length=100)
-    sex = models.IntegerField(choices=((0, 'Female'), (1, 'Male')))
-    age = models.IntegerField()
-    had_credit = models.IntegerField()
-    region = models.CharField(max_length=20)
-    class_info = models.ForeignKey(Class, on_delete=models.CASCADE, null=True)
-    account = models.CharField(max_length=100)
-
-    class Meta:
-        db_table = 'Ljj_Student'
-
-
-class Admin(models.Model):
-    admin_id = models.CharField(primary_key=True, max_length=50)
-    admin_name = models.CharField(max_length=100)
-    account = models.CharField(max_length=100)
-
-    class Meta:
-        db_table = 'Ljj_Admin'
-
-
-class Teacher(models.Model):
-    teacher_id = models.CharField(primary_key=True, max_length=50)
-    teacher_name = models.CharField(max_length=100)
-    sex = models.IntegerField(choices=((0, 'Female'), (1, 'Male')))
-    age = models.IntegerField()
-    job_title = models.CharField(max_length=60)
-    phone = models.CharField(max_length=20)
-    account = models.CharField(max_length=100)
-
-    class Meta:
-        db_table = 'Ljj_Teacher'
-
-
-class Account(models.Model):
-    account = models.CharField(primary_key=True, max_length=50)
-    password = models.CharField(max_length=100)
-    role = models.IntegerField(choices=((0, 'Student'), (1, 'Admin'), (2, 'Teacher')))
+class LjjAccount(models.Model):
+    Account = models.CharField(max_length=50, primary_key=True)
+    Password = models.CharField(max_length=100, null=False)
+    Role = models.IntegerField(choices=((0, '学生'), (1, '教师'), (2, '管理员')), null=False)
 
     class Meta:
         db_table = 'Ljj_Account'
+        verbose_name = '账户'
+        verbose_name_plural = '账户'
 
 
-class CourseEnrollment(models.Model):
-    student = models.ForeignKey(Student, on_delete=models.CASCADE)
-    course = models.ForeignKey(Course, on_delete=models.CASCADE)
-    teacher = models.ForeignKey(Teacher, on_delete=models.CASCADE)
-    grade = models.IntegerField()
-    term = models.CharField(max_length=20)
+class LjjStudent(models.Model):
+    Student_id = models.CharField(max_length=50, primary_key=True)
+    Student_name = models.CharField(max_length=100, null=False)
 
     class Meta:
-        db_table = 'Ljj_CourseEnrollment'
+        db_table = 'Ljj_Student'
+        verbose_name = '学生'
+        verbose_name_plural = '学生'
 
 
-class CourseOffering(models.Model):
-    class_info = models.ForeignKey(Class, on_delete=models.CASCADE)
-    course = models.ForeignKey(Course, on_delete=models.CASCADE)
+class LjjAdmin(models.Model):
+    Admin_id = models.CharField(max_length=50, primary_key=True)
+    Admin_name = models.CharField(max_length=100, null=False)
+
+    class Meta:
+        db_table = 'Ljj_Admin'
+        verbose_name = '管理员'
+        verbose_name_plural = '管理员'
+
+
+class LjjTeacher(models.Model):
+    Teacher_id = models.CharField(max_length=50, primary_key=True)
+    Teacher_name = models.CharField(max_length=100, null=False)
+
+    class Meta:
+        db_table = 'Ljj_Teacher'
+        verbose_name = '教师'
+        verbose_name_plural = '教师'
+
+
+class LjjGrade(models.Model):
+    Student_id = models.ForeignKey(LjjStudent, on_delete=models.CASCADE)
+    Course_id = models.ForeignKey(LjjCourse, on_delete=models.CASCADE)
+    Grade = models.IntegerField(null=False)
+    Term = models.CharField(max_length=20, null=False)
+
+    class Meta:
+        db_table = 'Ljj_Grade'
+        verbose_name = '成绩'
+        verbose_name_plural = '成绩'
+
+
+class LjjCourseOffering(models.Model):
+    Class_id = models.ForeignKey(LjjClass, on_delete=models.CASCADE)
+    Course_id = models.ForeignKey(LjjCourse, on_delete=models.CASCADE)
+    Teacher_id = models.ForeignKey(LjjTeacher, on_delete=models.CASCADE)
 
     class Meta:
         db_table = 'Ljj_CourseOffering'
+        verbose_name = '课程开设'
+        verbose_name_plural = '课程开设'
