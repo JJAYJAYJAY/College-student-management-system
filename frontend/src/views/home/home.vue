@@ -40,15 +40,13 @@ import {ref} from "vue";
 import {RouterView} from "vue-router";
 import {MENU} from "@/constant/homeConfig.js";
 import {useRouter} from "vue-router";
-import emitter from "@/utils/mitt.js";
+import useUserStore from "@/stores/userStore.js";
 
 const menuList=ref({})
 
 
 const router = useRouter();
 //获取get参数
-const {query} = router.currentRoute.value;
-// console.log(query)
-// console.log(router.currentRoute.value)
-menuList.value=MENU[query.role]
+const role = useUserStore().user.role
+menuList.value=MENU[role]
 </script>

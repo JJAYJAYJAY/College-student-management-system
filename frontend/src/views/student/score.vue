@@ -36,6 +36,7 @@
 import {onMounted, ref, watch} from "vue";
 import Chart from "@/components/Universal/chart.vue";
 import emitter from "@/utils/mitt.js";
+import {getStudentGrade} from "@/api/student.js";
 
 const columns = ref([
   {
@@ -55,16 +56,7 @@ const columns = ref([
       sortDirections: ['ascend', 'descend']
     },
     filterable: {
-      filters: [
-        {
-          text: "考试",
-          value: "考试"
-        },
-        {
-          text: "考查",
-          value: "考查"
-        }
-      ],
+      filters: [],
       multiple: true,
       filter:(value, record) => {
         for (let i = 0; i < value.length; i++) {
@@ -85,16 +77,7 @@ const columns = ref([
       sortDirections: ['ascend', 'descend']
     },
     filterable: {
-      filters: [
-        {
-          text: "2",
-          value: 2
-        },
-        {
-          text: "4",
-          value: 4
-        }
-      ],
+      filters: [],
       multiple: true,
       filter:(value, record) => {
         for (let i = 0; i < value.length; i++) {
@@ -115,16 +98,7 @@ const columns = ref([
       sortDirections: ['ascend', 'descend']
     },
     filterable: {
-      filters: [
-        {
-          text: "32",
-          value: 32
-        },
-        {
-          text: "64",
-          value: 64
-        }
-      ],
+      filters: [],
       multiple: true,
       filter:(value, record) => {
         for (let i = 0; i < value.length; i++) {
@@ -145,36 +119,7 @@ const columns = ref([
       sortDirections: ['ascend', 'descend']
     },
     filterable: {
-      filters: [
-        {
-          text: "2022-2023上",
-          value: "2022-2023上"
-        },
-        {
-          text: "2022-2023下",
-          value: "2022-2023下"
-        },
-        {
-          text: "2023-2024上",
-          value: "2023-2024上"
-        },
-        {
-          text: "2023-2024下",
-          value: "2023-2024下"
-        },
-        {
-          text: "2024-2025上",
-          value: "2024-2025上"
-        },
-        {
-          text: "2024-2025下",
-          value: "2024-2025下"
-        },
-        {
-          text: "2025-2026上",
-          value: "2025-2026上"
-        }
-      ],
+      filters: [],
       multiple: true,
       filter:(value, record) => {
         for (let i = 0; i < value.length; i++) {
@@ -259,6 +204,7 @@ watch(scoreData, (newData) => {
     }
   })
 })
+
 scoreData.value=[
   {
     courseName: "高等数学",
@@ -388,20 +334,7 @@ scoreData.value=[
   }
 ]
 
-const scoreTotalData = ref([
-  {
-    label: "总学分",
-    value: 56
-  },
-  {
-    label: "总学时",
-    value: 896
-  },
-  {
-    label: "总GPA",
-    value: 3.6
-  }
-])
+const scoreTotalData = ref([])
 const chartOption = ref({
   title: {
     text: "历学期gpa统计",
@@ -418,52 +351,84 @@ const chartOption = ref({
     type: "category"
   },
   yAxis: {
-    type: "value"
+    type: "value",
+    min:function (value) {
+      return value.min - 0.2
+    },
+    max:function (value) {
+      return value.max + 0.2
+    }
   },
   series: [
     {
       name: "gpa",
       type: "line",
-      data: '',
+      data: [],
     }
   ]
 })
 
-chartOption.value.series[0].data = [
-  [
-    "2022-2023上",
-     3.6
-  ],
-  [
-    "2022-2023下",
-     2.6
-  ],
-  [
-    "2023-2024上",
-     3.6
-  ],
-  [
-    "2023-2024下",
-     3.8
-  ],
-  [
-    "2024-2025上",
-     4.1
-  ],
-  [
-    "2024-2025下",
-     4.6
-  ],
-  [
-    "2025-2026上",
-     3.6
-  ]
-]
 
 onMounted(()=>{
+  getStudentGrade().then(res=>{
+    if (res.status === 200){
+      let data = res.data.data
+      setTotalData(data)
+      setTermGPA(data)
+      setDetailData(data)
+    }
+  })
   setTimeout(()=>{
     emitter.emit('resize')
   },500)
-
 })
+
+const setTotalData = (data) => {
+  scoreTotalData.value = [
+    {
+      label: "总学分",
+      value: data.hadCredit
+    },
+    {
+      label: "总学时",
+      value: data.totalHours
+    },
+    {
+      label: "总GPA",
+      //保留两位小数
+      value: Number(data.GPA).toFixed(3)
+    }
+  ]
+}
+const setTermGPA = (data) => {
+  let termGPA = []
+  for (let i = 0; i < data.termGpa.length; i++) {
+    termGPA.push([
+        data.termGpa[i].term,
+        Number(Number(data.termGpa[i].GPA).toFixed(3))
+    ])
+  }
+  chartOption.value={
+    series:[
+      {
+        data: termGPA
+      }
+    ]
+  }
+}
+
+
+const setDetailData = (data) => {
+  scoreData.value = data.courseGrade.map((item) => {
+    return {
+      courseName: item.courseName,
+      testMethod: item.testMethod,
+      credit: item.credit,
+      hour: item.hours,
+      term: item.term,
+      grade: item.grade,
+      point: Number(item.point).toFixed(1)
+    }
+  })
+}
 </script>

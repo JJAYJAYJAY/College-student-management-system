@@ -21,6 +21,10 @@ def convert_dict_keys_to_camel_case(d):
             d.items()}
 
 
+def convert_array_keys_to_camel_case(arr):
+    return [convert_dict_keys_to_camel_case(i) for i in arr]
+
+
 def snake_to_camel(snake_str):
     components = snake_str.split('_')
     return components[0] + ''.join(x.title() for x in components[1:])

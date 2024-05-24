@@ -100,6 +100,7 @@ import {useRouter} from "vue-router";
 import axios from "axios";
 import {login} from "@/api/user.js";
 import emitter from "@/utils/mitt.js";
+import useUserStore from "@/stores/userStore.js";
 
 let form= reactive({
   username: "",
@@ -109,38 +110,30 @@ let form= reactive({
 const router= useRouter();
 
 const showFail = () => {
-  
+
 }
+
+const userStore = useUserStore();
 
 const handleSubmit = (e)=>{
   e.preventDefault();
   // 转跳并传参
   login(form).then(res=>{
     if (res.status === 200){
-      switch (res.data.data.role){
+        localStorage.setItem('token',res.data.data.token);
+        // axios.defaults.headers.common['Authorization'] = 'Bearer '+res.data.data.token;
+        switch (res.data.data.role){
         case 0:
-          router.push({
-            path: '/home/studentProfile',
-            query: {
-              role:'student'
-            }
-          });
+          userStore.setRole('student');
+          router.push({path: '/home/studentProfile'});
           break;
         case 1:
-          router.push({
-            path: '/home/teacherProfile',
-            query: {
-              role:'teacher'
-            }
-          });
+          userStore.setRole('teacher');
+          router.push({path: '/home/teacherProfile'});
           break;
         case 2:
-          router.push({
-            path: '/home/adminProfile',
-            query: {
-              role:'admin'
-            }
-          });
+          userStore.setRole('admin');
+          router.push({path: '/home/adminProfile'});
           break;
       }
     }else{

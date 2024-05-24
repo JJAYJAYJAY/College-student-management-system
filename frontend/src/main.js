@@ -5,6 +5,7 @@ import ArcoVueIcon from '@arco-design/web-vue/es/icon';
 import '@arco-design/web-vue/dist/arco.css';
 import App from './App.vue'
 import router from './router'
+import axios from "axios";
 
 const app = createApp(App)
 
@@ -15,3 +16,9 @@ app.use(ArcoVueIcon)
 
 
 app.mount('#app')
+
+axios.interceptors.request.use(function (config) {
+    const token = localStorage.getItem('token');
+    config.headers.Authorization =  `Bearer ${token}`;
+    return config;
+});
