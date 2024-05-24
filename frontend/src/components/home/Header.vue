@@ -26,7 +26,8 @@ import {Icon} from "@arco-design/web-vue";
 const router=useRouter();
 
 const back = () => {
-  router.go(-1);
+  router.push('/')
+  localStorage.removeItem('token');
 }
 
 </script>

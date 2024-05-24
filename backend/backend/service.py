@@ -15,8 +15,11 @@ class LoginService:
     def login(account: str, password: str) -> Any | None:
         sql = "select role from Ljj_Account where account = %s and password = %s"
         result = safe_sql(sql, [account, password])
-        sql = "select class_id from Ljj_Student where account = %s"
-        class_id = safe_sql(sql, [account])
+        if result[0]["role"] == 0:
+            sql = "select class_id from Ljj_Student where account = %s"
+            class_id = safe_sql(sql, [account])
+        else:
+            class_id = [{"class_id": None}]
         if result:
             response = {
                 "token": jwt.encode({"account": account, "role": result[0]["role"]}, settings.SECRET_KEY,
@@ -160,6 +163,46 @@ class StudentService:
                 sql = "select distinct term from ljj_classcourse where class_id = %s"
                 result = safe_sql(sql, [classId])
                 response["term"] = convert_array_keys_to_camel_case(result)
+                return response
+            else:
+                return None
+        except jwt.ExpiredSignatureError:
+            return None
+        except jwt.InvalidTokenError:
+            return None
+        except Exception as e:
+            return None
+
+    @staticmethod
+    def get_course_offering(token, classId):
+        try:
+            payload = jwt.decode(token, settings.SECRET_KEY, algorithms=['HS256'])
+            role = payload['role']
+            response = {}
+            if role == 0:
+                # 查询所有班级
+                sql = """
+                select 
+                    class_id,
+                    class_name
+                from ljj_class
+                """
+                result = safe_sql(sql)
+                response["allCourse"] = convert_array_keys_to_camel_case(result)
+                # 查询特定班级
+                sql = """
+                select 
+                    course_name,
+                    credit,
+                    teacher_name,
+                    hours,
+                    test_method,
+                    term
+                from ljj_classcourse
+                where class_id = %s
+                """
+                result = safe_sql(sql, [classId])
+                response["detailCourse"] = convert_array_keys_to_camel_case(result)
                 return response
             else:
                 return None

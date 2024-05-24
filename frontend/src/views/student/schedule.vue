@@ -121,13 +121,18 @@ const isDisabled=ref(false)
 const scheduleData=ref([])
 const userStore = useUserStore();
 const handleChange=()=>{
+  isDisabled.value = true
   getStudentCourse({
     term:selectTerm.value,
     classId:userStore.user.classId
   }).then(res=>{
     if(res.status===200){
       scheduleData.value=res.data.data.course
+      isDisabled.value = false
     }
+  }).catch(err=>{
+    console.log(err)
+    isDisabled.value = false
   })
 }
 

@@ -24,3 +24,12 @@ export function getStudentGrade(){
         baseURL: BASEURL
     })
 }
+
+export function getCourseOffering(data){
+    return axios.request({
+        method: 'post',
+        data:data,
+        url: '/student/get_course_offering',
+        baseURL: BASEURL
+    })
+}

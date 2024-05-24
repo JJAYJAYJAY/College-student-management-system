@@ -51,3 +51,14 @@ class GetStudentCourse(APIView):
         else:
             return Response().fail('获取学生课程失败', status=400)
 
+
+class GetCourseOffering(APIView):
+    def post(self, request):
+        # 请求头获得token
+        token = get_token_from_request(request)
+        classId = request.data.get('classId')
+        response = StudentService.get_course_offering(token, classId)
+        if response:
+            return Response().ok(response, status=200)
+        else:
+            return Response().fail('获取课程信息失败', status=400)
