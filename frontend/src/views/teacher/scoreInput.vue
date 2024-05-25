@@ -47,10 +47,30 @@
             </a-col>
             <a-col :span="8"></a-col>
             <a-col :span="2">
-              <a-button type="primary">下载导入模板</a-button>
+              <a href="/学生数据导入模板.xlsx" download>
+                <a-button type="primary">下载导入模板</a-button>
+              </a>
             </a-col>
             <a-col :span="2">
-             <a-button type="primary">Excel批量导入</a-button>
+             <a-button type="primary" @click="uploadVisable=true">Excel批量导入</a-button>
+              <a-modal :visible="uploadVisable" @ok="handleOk" @cancel="handleUploadCancel" style="position: absolute">
+                <template #title>
+                  Excel导入
+                </template>
+                <div>
+                  <a-upload
+                      ref="upload"
+                      :action="updateStudentFromExcel"
+                      draggable
+                      :auto-upload="false"
+                      accept="application/vnd.ms-excel, application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                      limit="1"
+                      @success="onFileSuccess"
+                      @error="onFileError"
+                      :headers="{'Authorization': 'Bearer ' + token}"
+                  />
+                </div>
+              </a-modal>
             </a-col>
           </a-row>
           <a-row style="margin-bottom: 20px">
@@ -93,10 +113,9 @@
 <script setup lang="js">
 
 import {h, onMounted, ref, watch} from "vue";
-import {getStudentCourse} from "@/api/student.js";
-import useUserStore from "@/stores/userStore.js";
-import {getTeacherCourse, teacherGetStudentGrade, updateStudentGrade} from "@/api/teacher.js";
+import {teacherGetStudentGrade, updateStudentFromExcel, updateStudentGrade} from "@/api/teacher.js";
 import {IconSearch} from "@arco-design/web-vue/es/icon/index.js";
+import {Message} from "@arco-design/web-vue";
 
 const columns = ref([
   {
@@ -193,6 +212,9 @@ const selectClass=ref('')
 const selectCourse=ref('')
 const classList=ref([])
 const courseList=ref([])
+const uploadVisable=ref(false)
+const upload=ref()
+const token=localStorage.getItem('token')
 
 const handleChange=()=>{
   teacherGetStudentGrade({
@@ -206,6 +228,7 @@ const handleChange=()=>{
 }
 
 onMounted(()=>{
+
   teacherGetStudentGrade({
     classId:selectClass.value,
     courseId:selectCourse.value
@@ -235,72 +258,7 @@ watch(selectCourse,()=>{
   }
 })
 
-watch(scoreData,()=>{
-
-})
-
-scoreData.value = [
-  {
-    courseName: "软件工程",
-    testMethod: "考试",
-    credit: 3,
-    hours: 48,
-    className: "软件工程1班",
-    term: "2021-2022学年第一学期",
-    studentName: "张三",
-    studentId: "2018111111",
-    grade: 90,
-    point: 4.0
-  },
-  {
-    courseName: "软件工程",
-    testMethod: "考试",
-    credit: 3,
-    hours: 48,
-    className: "软件工程1班",
-    term: "2021-2022学年第一学期",
-    studentName: "李四",
-    studentId: "2018111112",
-    grade: 85,
-    point: 3.7
-  },
-  {
-    courseName: "软件工程",
-    testMethod: "考试",
-    credit: 3,
-    hours: 48,
-    className: "软件工程1班",
-    term: "2021-2022学年第一学期",
-    studentName: "王五",
-    studentId: "2018111113",
-    grade: 80,
-    point: 3.3
-  },
-  {
-    courseName: "软件工程",
-    testMethod: "考试",
-    credit: 3,
-    hours: 48,
-    className: "软件工程1班",
-    term: "2021-2022学年第一学期",
-    studentName: "赵六",
-    studentId: "2018111114",
-    grade: 75,
-    point: 3.0
-  },
-  {
-    courseName: "软件工程",
-    testMethod: "考试",
-    credit: 3,
-    hours: 48,
-    className: "软件工程1班",
-    term: "2021-2022学年第一学期",
-    studentName: "钱七",
-    studentId: "2018111115",
-    grade: 70,
-    point: 2.7
-  }
-]
+scoreData.value = []
 
 const freshKey= ref(0)
 
@@ -350,12 +308,30 @@ const handleEditButton = ()=>{
       data:changeData.value
     }).then(res=>{
       if(res.status===200){
-        console.log('保存成功')
+        Message.success(res.data.data.msg)
       }
       changeData.value=[]
     })
   }
   showEdit.value=!showEdit.value
+}
+
+const handleUploadCancel=()=>{
+  uploadVisable.value=false
+}
+
+
+const handleOk=()=>{
+  upload.value.submit()
+}
+
+const onFileSuccess=(res)=>{
+  Message.success("上传成功")
+  uploadVisable.value=false
+}
+
+const onFileError=()=>{
+  Message.error("上传失败")
 }
 
 </script>

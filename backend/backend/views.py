@@ -1,3 +1,6 @@
+from pprint import pprint
+
+import pandas as pd
 from django.http import JsonResponse
 from rest_framework.views import APIView
 
@@ -103,8 +106,22 @@ class UpdateStudentGrade(APIView):
     def post(self, request):
         # 请求头获得token
         token = get_token_from_request(request)
-        updateData = request.data.get('updateData')
-        response = StudentService.update_student_grade(token, updateData)
+        updateData = request.data.get('data')
+        response = TeacherService.update_student_grade(token, updateData)
+        if response:
+            return Response().ok(response, status=200)
+        else:
+            return Response().fail('升级学生成绩失败', status=400)
+
+
+class UpdateStudentFromExcel(APIView):
+    def post(self, request):
+        # 请求头获得token
+        token = get_token_from_request(request)
+        # 读取excel文件
+        excelFile = request.FILES.get('file')
+        updateData = pd.read_excel(excelFile)
+        response = TeacherService.update_student_from_excel(token, updateData)
         if response:
             return Response().ok(response, status=200)
         else:

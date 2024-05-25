@@ -33,3 +33,5 @@ export function updateStudentGrade(data){
         baseURL: BASEURL
     })
 }
+
+export const updateStudentFromExcel = BASEURL + '/teacher/update_student_from_excel';

@@ -18,7 +18,7 @@ app.use(ArcoVueIcon)
 app.mount('#app')
 
 axios.interceptors.request.use(function (config) {
-    const token = localStorage.getItem('token');
+    const token = sessionStorage.getItem('token');
     config.headers.Authorization =  `Bearer ${token}`;
     return config;
 });

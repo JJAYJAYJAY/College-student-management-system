@@ -28,4 +28,5 @@ urlpatterns = [
     path('api/teacher/get_teacher_course', GetTeacherCourse.as_view(), name='teacher'),
     path('api/teacher/teacher_get_student_grade', TeacherGetStudentGrade.as_view(), name='teacher'),
     path('api/teacher/update_student_grade', UpdateStudentGrade.as_view(), name='teacher'),
+    path('api/teacher/update_student_from_excel', UpdateStudentFromExcel.as_view(), name='teacher'),
 ]

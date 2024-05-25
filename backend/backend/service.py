@@ -1,7 +1,9 @@
+import traceback
 from typing import Dict, Any
 
 import jwt
 
+from django.db import connection
 from backend import settings
 from uitls.response import convert_dict_keys_to_camel_case, convert_array_keys_to_camel_case
 from uitls.tools import safe_sql
@@ -309,6 +311,7 @@ class TeacherService:
                 if classId and courseId:
                     sql = """
                         select 
+                        ljj_studentcourse.course_id as course_id,
                         course_name as course_name,
                         test_method as test_method,
                         credit as credit,
@@ -338,4 +341,50 @@ class TeacherService:
         except Exception as e:
             return None
 
-        
+    @staticmethod
+    def update_student_grade(token, data):
+        try:
+            payload = jwt.decode(token, settings.SECRET_KEY, algorithms=['HS256'])
+            role = payload['role']
+            if len(data) == 0:
+                return {"msg": "没有修改"}
+            if role == 1:
+                sql = "update ljj_grade set grade = %s where student_id = %s and course_id = %s"
+                params = [(item['grade'], item['studentId'], item['courseId']) for item in data]
+                with connection.cursor() as cursor:
+                    cursor.executemany(sql, params)
+                    connection.commit()
+                return {"msg": "更新成功"}
+            else:
+                return None
+        except jwt.ExpiredSignatureError:
+            return None
+        except jwt.InvalidTokenError:
+            return None
+        except Exception as e:
+            connection.rollback()
+            return None
+
+    @staticmethod
+    def update_student_from_excel(token, data):
+        # try:
+            payload = jwt.decode(token, settings.SECRET_KEY, algorithms=['HS256'])
+            role = payload['role']
+            params = [(data.loc[i, '成绩'], data.loc[i, '学号'], data.loc[i, '课程号']) for i in range(len(data))]
+            print(params)
+            if role == 1:
+                sql = "update ljj_grade set grade = %s where student_id = %s and course_id = %s"
+                params = [(data.loc[i, '成绩'], data.loc[i, '学号'], data.loc[i, '课程号']) for i in range(len(data))]
+                with connection.cursor() as cursor:
+                    cursor.executemany(sql, params)
+                    connection.commit()
+                return {"msg": "更新成功"}
+            else:
+                return None
+        # except jwt.ExpiredSignatureError:
+        #     return None
+        # except jwt.InvalidTokenError:
+        #     return None
+        # except Exception as e:
+        #     connection.rollback()
+        #     return None

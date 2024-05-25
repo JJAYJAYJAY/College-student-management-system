@@ -115,7 +115,7 @@ const handleSubmit = (e)=>{
   // 转跳并传参
   login(form).then(res=>{
     if (res.status === 200){
-        localStorage.setItem('token',res.data.data.token);
+        sessionStorage.setItem('token',res.data.data.token);
         switch (res.data.data.role){
         case 0:
           userStore.setRole('student');
