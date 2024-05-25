@@ -4,7 +4,7 @@ import pandas as pd
 from django.http import JsonResponse
 from rest_framework.views import APIView
 
-from .service import LoginService, StudentService, TeacherService
+from .service import LoginService, StudentService, TeacherService, AdminService
 from uitls.response import Response
 from uitls.tools import *
 
@@ -126,3 +126,13 @@ class UpdateStudentFromExcel(APIView):
             return Response().ok(response, status=200)
         else:
             return Response().fail('升级学生成绩失败', status=400)
+
+class GetAdminInfo(APIView):
+    def post(self, request):
+        # 请求头获得token
+        token = get_token_from_request(request)
+        response = AdminService.get_admin_info(token)
+        if response:
+            return Response().ok(response, status=200)
+        else:
+            return Response().fail('获取管理员信息失败', status=400)

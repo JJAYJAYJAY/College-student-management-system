@@ -367,7 +367,7 @@ class TeacherService:
 
     @staticmethod
     def update_student_from_excel(token, data):
-        # try:
+        try:
             payload = jwt.decode(token, settings.SECRET_KEY, algorithms=['HS256'])
             role = payload['role']
             params = [(data.loc[i, '成绩'], data.loc[i, '学号'], data.loc[i, '课程号']) for i in range(len(data))]
@@ -381,10 +381,40 @@ class TeacherService:
                 return {"msg": "更新成功"}
             else:
                 return None
-        # except jwt.ExpiredSignatureError:
-        #     return None
-        # except jwt.InvalidTokenError:
-        #     return None
-        # except Exception as e:
-        #     connection.rollback()
-        #     return None
+        except jwt.ExpiredSignatureError:
+            return None
+        except jwt.InvalidTokenError:
+            return None
+        except Exception as e:
+            connection.rollback()
+            return None
+
+
+class AdminService:
+    def __init__(self):
+        pass
+
+    @staticmethod
+    def get_admin_info(token):
+        try:
+            payload = jwt.decode(token, settings.SECRET_KEY, algorithms=['HS256'])
+            account = payload['account']
+            role = payload['role']
+            if role == 2:
+                sql = """
+                select 
+                    admin_id,
+                    admin_name
+                from ljj_admin
+                where account = %s
+                """
+                result = safe_sql(sql, [account])
+                return result[0]
+            else:
+                return None
+        except jwt.ExpiredSignatureError:
+            return None
+        except jwt.InvalidTokenError:
+            return None
+        except Exception as e:
+            return None
