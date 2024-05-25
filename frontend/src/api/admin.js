@@ -16,10 +16,10 @@ export function adminGetStudentInfo(){
     })
 }
 
-export function getTeacherInfo(){
+export function adminGetTeacherInfo(){
     return axios.request({
         method: 'post',
-        url: '/admin/get_teacher_info',
+        url: '/admin/admin_get_teacher_info',
         baseURL: BASEURL
     })
 }

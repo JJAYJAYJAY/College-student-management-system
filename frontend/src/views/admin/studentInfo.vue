@@ -73,7 +73,7 @@ const columns = ref([
       multiple: true,
       filter:(value, record) => {
         for (let i = 0; i < value.length; i++) {
-          if (record.credit === value[i]) {
+          if (record.sex === value[i]) {
             return true
           }
         }
@@ -227,7 +227,8 @@ const regionChartOption = ref({
     trigger: 'item'
   },
   legend: {
-    bottom: 6
+    orient: "vertical",
+    left:"30px"
   },
   series: [
     {
@@ -259,7 +260,8 @@ const sexChartOption = ref({
     trigger: "item"
   },
   legend: {
-    bottom: 6
+    orient: "vertical",
+    left:"30px"
   },
   series: [
     {
@@ -322,31 +324,5 @@ const setTotalData = (data) => {
     }
   ]
 }
-
-// const countRegion=(studentData) =>{
-//   let regionData = studentData.map((item) => {
-//     return {
-//       region: item.region
-//     }
-//   })
-//   let regionDict = {}
-//   for (let i=0;i<regionData.length;i++){
-//     if(regionDict[regionData[i].region]){
-//       regionDict[regionData[i].region]++
-//     }
-//     else{
-//       regionDict[regionData[i].region]=1
-//     }
-//   }
-//   let regionDataList = []
-//   for (let key in regionDict){
-//     regionDataList.push({
-//       name: key,
-//       value: regionDict[key]
-//     })
-//   }
-//   console.log(regionDataList)
-//   return regionDataList
-// }
 
 </script>

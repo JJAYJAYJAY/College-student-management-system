@@ -483,3 +483,64 @@ class AdminService:
             return None
         except Exception as e:
             return None
+
+
+    @staticmethod
+    def admin_get_teacher_info(token):
+        try:
+            payload = jwt.decode(token, settings.SECRET_KEY, algorithms=['HS256'])
+            role = payload['role']
+            response = {}
+            if role == 2:
+                with transaction.atomic():
+                    sql = """
+                    select 
+                        teacher_id,
+                        teacher_name,
+                        if(Sex=0,'女','男') as sex,
+                        age,
+                        job_title,
+                        phone
+                        from ljj_teacher
+                    """
+                    result = safe_sql(sql)
+                    response["teachers"] = convert_array_keys_to_camel_case(result)
+
+                    sql = """
+                        select 
+                        job_title as name,
+                        count(*) as value
+                        from ljj_teacher
+                        group by job_title
+                    """
+                    result = safe_sql(sql)
+                    response["jobTitleData"] = convert_array_keys_to_camel_case(result)
+
+                    sql = """
+                        select
+                            count(*) as value,
+                            if(Sex = 0,'女','男') as name
+                        from
+                        ljj_teacher
+                        group by sex
+                    """
+                    result = safe_sql(sql)
+                    response["sexData"] = convert_array_keys_to_camel_case(result)
+
+                    sql = """
+                    select
+                        round(count(*),0) as total_teacher,
+                        round(avg(age),2) as average_age
+                    from ljj_teacher
+                    """
+                    result = safe_sql(sql)
+                    response['totalData'] = result[0]
+                return response
+            else:
+                return None
+        except jwt.ExpiredSignatureError:
+            return None
+        except jwt.InvalidTokenError:
+            return None
+        except Exception as e:
+            return None

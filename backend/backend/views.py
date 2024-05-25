@@ -148,3 +148,14 @@ class AdminGetStudentInfo(APIView):
             return Response().ok(response, status=200)
         else:
             return Response().fail('获取学生信息失败', status=400)
+
+
+class AdminGetTeacherInfo(APIView):
+    def post(self, request):
+        # 请求头获得token
+        token = get_token_from_request(request)
+        response = AdminService.admin_get_teacher_info(token)
+        if response:
+            return Response().ok(response, status=200)
+        else:
+            return Response().fail('获取教师信息失败', status=400)
