@@ -32,4 +32,8 @@ urlpatterns = [
     path('api/admin/get_admin_info', GetAdminInfo.as_view(), name='admin'),
     path('api/admin/admin_get_student_info', AdminGetStudentInfo.as_view(), name='admin_student'),
     path('api/admin/admin_get_teacher_info', AdminGetTeacherInfo.as_view(), name='admin_teacher'),
+    path('api/admin/admin_get_student_change_info', AdminGetStudentChangeInfo.as_view(), name='admin_student_change'),
+    path('api/admin/update_student_info', UpdateStudentInfo.as_view(), name='update_student_info'),
+    path('api/admin/delete_student_info', DeleteStudentInfo.as_view(), name='delete_student_info'),
+    path('api/admin/update_student_info_from_excel', UpdateStudentInfoFromExcel.as_view(), name='update_student_info_from_excel'),
 ]

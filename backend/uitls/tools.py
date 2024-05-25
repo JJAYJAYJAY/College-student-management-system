@@ -5,7 +5,10 @@ def safe_sql(sql, params: list = []):
     with connection.cursor() as cursor:
         cursor.execute(sql, params)
         # 获取查询结果
-        records = dict_fetchall(cursor)
+        if cursor.description:
+            records = dict_fetchall(cursor)
+        else:
+            records = None
     return records
 
 

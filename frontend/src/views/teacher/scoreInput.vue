@@ -47,13 +47,13 @@
             </a-col>
             <a-col :span="8"></a-col>
             <a-col :span="2">
-              <a href="/学生数据导入模板.xlsx" download>
+              <a href="/学生成绩导入模板.xlsx" download>
                 <a-button type="primary">下载导入模板</a-button>
               </a>
             </a-col>
             <a-col :span="2">
-             <a-button type="primary" @click="uploadVisable=true">Excel批量导入</a-button>
-              <a-modal :visible="uploadVisable" @ok="handleOk" @cancel="handleUploadCancel" style="position: absolute">
+             <a-button type="primary" @click="uploadVisible=true">Excel批量导入</a-button>
+              <a-modal :visible="uploadVisible" @ok="handleOk" @cancel="handleUploadCancel" style="position: absolute">
                 <template #title>
                   Excel导入
                 </template>
@@ -212,9 +212,9 @@ const selectClass=ref('')
 const selectCourse=ref('')
 const classList=ref([])
 const courseList=ref([])
-const uploadVisable=ref(false)
+const uploadVisible=ref(false)
 const upload=ref()
-const token=localStorage.getItem('token')
+const token=sessionStorage.getItem('token')
 
 const handleChange=()=>{
   teacherGetStudentGrade({
@@ -228,7 +228,6 @@ const handleChange=()=>{
 }
 
 onMounted(()=>{
-
   teacherGetStudentGrade({
     classId:selectClass.value,
     courseId:selectCourse.value
@@ -317,7 +316,7 @@ const handleEditButton = ()=>{
 }
 
 const handleUploadCancel=()=>{
-  uploadVisable.value=false
+  uploadVisible.value=false
 }
 
 
@@ -327,7 +326,7 @@ const handleOk=()=>{
 
 const onFileSuccess=(res)=>{
   Message.success("上传成功")
-  uploadVisable.value=false
+  uploadVisible.value=false
 }
 
 const onFileError=()=>{

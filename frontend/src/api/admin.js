@@ -24,4 +24,30 @@ export function adminGetTeacherInfo(){
     })
 }
 
+export function adminGetStudentChangeInfo(){
+    return axios.request({
+        method: 'post',
+        url: '/admin/admin_get_student_change_info',
+        baseURL: BASEURL
+    })
+}
 
+export function updateStudentInfo(data){
+    return axios.request({
+        method: 'post',
+        url: '/admin/update_student_info',
+        baseURL: BASEURL,
+        data
+    })
+}
+
+export function deleteStudentInfo(data){
+    return axios.request({
+        method: 'post',
+        url: '/admin/delete_student_info',
+        baseURL: BASEURL,
+        data
+    })
+}
+
+export const updateStudentInfoFromExcel = BASEURL + '/admin/update_student_info_from_excel';

@@ -1,11 +1,12 @@
 import traceback
-from typing import Dict, Any
+from pprint import pprint
+from typing import Any
 
 import jwt
-
 from django.db import connection, transaction
+
 from backend import settings
-from uitls.response import convert_dict_keys_to_camel_case, convert_array_keys_to_camel_case
+from uitls.response import convert_array_keys_to_camel_case
 from uitls.tools import safe_sql
 
 
@@ -67,7 +68,7 @@ class StudentService:
             return None
         except jwt.InvalidTokenError:
             return None
-        except Exception as e:
+        except Exception:
             return None
 
     @staticmethod
@@ -139,7 +140,7 @@ class StudentService:
             return None
         except jwt.InvalidTokenError:
             return None
-        except Exception as e:
+        except Exception:
             return None
 
     @staticmethod
@@ -172,7 +173,7 @@ class StudentService:
             return None
         except jwt.InvalidTokenError:
             return None
-        except Exception as e:
+        except Exception:
             return None
 
     @staticmethod
@@ -212,7 +213,7 @@ class StudentService:
             return None
         except jwt.InvalidTokenError:
             return None
-        except Exception as e:
+        except Exception:
             return None
 
 
@@ -246,7 +247,7 @@ class TeacherService:
             return None
         except jwt.InvalidTokenError:
             return None
-        except Exception as e:
+        except Exception:
             return None
 
     @staticmethod
@@ -277,7 +278,7 @@ class TeacherService:
             return None
         except jwt.InvalidTokenError:
             return None
-        except Exception as e:
+        except Exception:
             return None
 
     @staticmethod
@@ -338,7 +339,7 @@ class TeacherService:
             return None
         except jwt.InvalidTokenError:
             return None
-        except Exception as e:
+        except Exception:
             return None
 
     @staticmethod
@@ -361,7 +362,7 @@ class TeacherService:
             return None
         except jwt.InvalidTokenError:
             return None
-        except Exception as e:
+        except Exception:
             connection.rollback()
             return None
 
@@ -385,7 +386,7 @@ class TeacherService:
             return None
         except jwt.InvalidTokenError:
             return None
-        except Exception as e:
+        except Exception:
             connection.rollback()
             return None
 
@@ -416,9 +417,8 @@ class AdminService:
             return None
         except jwt.InvalidTokenError:
             return None
-        except Exception as e:
+        except Exception:
             return None
-
 
     @staticmethod
     def admin_get_student_info(token):
@@ -481,9 +481,8 @@ class AdminService:
             return None
         except jwt.InvalidTokenError:
             return None
-        except Exception as e:
+        except Exception:
             return None
-
 
     @staticmethod
     def admin_get_teacher_info(token):
@@ -542,5 +541,159 @@ class AdminService:
             return None
         except jwt.InvalidTokenError:
             return None
-        except Exception as e:
+        except Exception:
+            return None
+
+    @staticmethod
+    def admin_get_student_change_info(token):
+        try:
+            payload = jwt.decode(token, settings.SECRET_KEY, algorithms=['HS256'])
+            role = payload['role']
+            response = {}
+            if role == 2:
+                with transaction.atomic():
+                    sql = """
+                    select 
+                        student_id,
+                        student_name,
+                        if(sex=0,'女','男') as sex,
+                        age,
+                        had_credit,
+                        region,
+                        ljj_student.class_id as class_id,
+                        class_name,
+                        ljj_class.Major_id as major_id,
+                        major_name
+                        from ljj_student join ljj_class on ljj_student.class_id = ljj_class.class_id
+                        join ljj_major on ljj_class.major_id = ljj_major.major_id
+                    """
+                    result = safe_sql(sql)
+                    response["students"] = convert_array_keys_to_camel_case(result)
+
+                    sql = """
+                        select
+                            class_id,
+                            class_name
+                        from ljj_class
+                    """
+                    result = safe_sql(sql)
+                    response["classes"] = convert_array_keys_to_camel_case(result)
+
+                    return response
+            else:
+                return None
+        except jwt.ExpiredSignatureError:
+            return None
+        except jwt.InvalidTokenError:
+            return None
+        except Exception:
+            return None
+
+    @staticmethod
+    def update_student_info(token, data):
+        try:
+            payload = jwt.decode(token, settings.SECRET_KEY, algorithms=['HS256'])
+            role = payload['role']
+            if len(data) == 0:
+                return {"msg": "没有修改"}
+            if role == 2:
+                sql = """
+                    update ljj_student
+                    set student_name = %s, age = %s, sex=%s, class_id = %s, region = %s
+                    where student_id = %s
+                """
+                params = [
+                    (
+                        item['studentName'],
+                        item["age"],
+                        1 if item['sex'] == "男" else 0,
+                        item['classId'],
+                        item['region'],
+                        item['studentId']
+                    ) for item in data
+                ]
+                pprint(params)
+                with connection.cursor() as cursor:
+                    cursor.executemany(sql, params)
+                    connection.commit()
+                return {"msg": "更新成功"}
+            else:
+                return None
+        except jwt.ExpiredSignatureError:
+            return None
+        except jwt.InvalidTokenError:
+            return None
+        except Exception:
+            traceback.print_stack()
+            connection.rollback()
+            return None
+
+    @staticmethod
+    def delete_student_info(token, studentId):
+        try:
+            payload = jwt.decode(token, settings.SECRET_KEY, algorithms=['HS256'])
+            role = payload['role']
+            if role == 2:
+                sql = "delete from ljj_student where student_id = %s"
+                with connection.cursor() as cursor:
+                    cursor.execute(sql, [studentId])
+                    connection.commit()
+                return {"msg": "删除成功"}
+            else:
+                return None
+        except jwt.ExpiredSignatureError:
+            return None
+        except jwt.InvalidTokenError:
+            return None
+        except Exception:
+            connection.rollback()
+            return None
+
+    @staticmethod
+    def update_student_info_from_excel(token, data):
+        try:
+            payload = jwt.decode(token, settings.SECRET_KEY, algorithms=['HS256'])
+            role = payload['role']
+            if role == 2:
+                with transaction.atomic():
+                    sql = """
+                        select 
+                        student_id
+                        from ljj_student
+                        """
+                    result = safe_sql(sql)
+                    student_id = [item['student_id'] for item in result]
+                    params = [
+                        [
+                            data.loc[i, "学生姓名"],
+                            0 if data.loc[i, "性别"] == '女' else 1,
+                            data.loc[i, "年龄"],
+                            data.loc[i, "生源地"],
+                            data.loc[i, "班级号"],
+                            data.loc[i, '学号'],
+                        ] for i in range(len(data))
+                    ]
+                    for item in params:
+                        if item[-1] in student_id:
+                            sql = """
+                            update ljj_student
+                            set student_name = %s, sex = %s, age = %s, region = %s, class_id = %s
+                            where student_id = %s 
+                            """
+                            safe_sql(sql, item)
+                        else:
+                            sql = """
+                                call insert_student(%s,%s,%s,%s,%s,%s,%s)
+                            """
+                            safe_sql(sql, [item[-1], item[0], item[2], item[1], item[3], item[4], item[-1]])
+                    return {"msg": "更新成功"}
+            else:
+                return None
+        except jwt.ExpiredSignatureError:
+            return None
+        except jwt.InvalidTokenError:
+            return None
+        except Exception:
+            traceback.print_stack()
+            connection.rollback()
             return None

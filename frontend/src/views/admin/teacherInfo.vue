@@ -6,6 +6,18 @@
   border-radius: 10px;
   padding: 20px;
 }
+.custom-filter {
+  padding: 20px;
+  background: var(--color-bg-5);
+  border: 1px solid var(--color-neutral-3);
+  border-radius: var(--border-radius-medium);
+  box-shadow: 0 2px 5px rgb(0 0 0 / 10%);
+}
+
+.custom-filter-footer {
+  display: flex;
+  justify-content: space-between;
+}
 
 </style>
 
@@ -27,7 +39,19 @@
             <chart style="margin-bottom: 20px;" :option="sexChartOption" :size="{width:'50%',height:'300px'}"></chart>
           </div>
           <h2 style="margin-bottom: 20px">教师信息列表</h2>
-          <a-table :columns="columns" :data="teacherData" :pagination="{pageSize:13}"></a-table>
+          <a-table :columns="columns" :data="teacherData" :pagination="{pageSize:13}">
+            <template #name-filter="{ filterValue, setFilterValue, handleFilterConfirm, handleFilterReset}">
+              <div class="custom-filter">
+                <a-space direction="vertical">
+                  <a-input :model-value="filterValue[0]" @input="(value)=>setFilterValue([value])" />
+                  <div class="custom-filter-footer">
+                    <a-button type="primary" @click="handleFilterConfirm">搜索</a-button>
+                    <a-button type="primary" status="danger" @click="handleFilterReset">重置</a-button>
+                  </div>
+                </a-space>
+              </div>
+            </template>
+          </a-table>
         </div>
       </a-row>
     </a-space>
@@ -36,10 +60,11 @@
 
 <script setup lang="js">
 
-import {onMounted, ref, watch} from "vue";
+import {h, onMounted, ref, watch} from "vue";
 import Chart from "@/components/Universal/chart.vue";
 import emitter from "@/utils/mitt.js";
 import {adminGetTeacherInfo} from "@/api/admin.js";
+import {IconSearch} from "@arco-design/web-vue/es/icon/index.js";
 
 const columns = ref([
   {
@@ -57,6 +82,11 @@ const columns = ref([
     align: "center",
     sortable:{
       sortDirections: ['ascend', 'descend']
+    },
+    filterable: {
+      filter: (value, record) => record.teacherName.includes(value),
+      slotName: 'name-filter',
+      icon: () => h(IconSearch)
     }
   },
   {
