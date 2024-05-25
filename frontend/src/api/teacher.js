@@ -15,3 +15,21 @@ export function getTeacherCourse(){
         baseURL: BASEURL
     })
 }
+
+export function teacherGetStudentGrade(data){
+    return axios.request({
+        method: 'post',
+        data:data,
+        url: '/teacher/teacher_get_student_grade',
+        baseURL: BASEURL
+    })
+}
+
+export function updateStudentGrade(data){
+    return axios.request({
+        method: 'post',
+        data:data,
+        url: '/teacher/update_student_grade',
+        baseURL: BASEURL
+    })
+}

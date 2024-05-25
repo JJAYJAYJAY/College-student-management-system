@@ -277,3 +277,65 @@ class TeacherService:
             return None
         except Exception as e:
             return None
+
+    @staticmethod
+    def teacher_get_student_grade(token, classId, courseId):
+        try:
+            payload = jwt.decode(token, settings.SECRET_KEY, algorithms=['HS256'])
+            account = payload['account']
+            role = payload['role']
+            params = [account]
+            response = {}
+            if role == 1:
+                sql = """
+                select distinct 
+                    course_id,
+                    course_name
+                from ljj_teachercourse
+                where Teacher_id = %s
+                """
+                result = safe_sql(sql, params)
+                response["courses"] = convert_array_keys_to_camel_case(result)
+                if courseId:
+                    sql = """
+                        select 
+                        class_id,
+                        class_name
+                        from ljj_teachercourse
+                        where Teacher_id = %s and course_id = %s
+                    """
+                    result = safe_sql(sql, params + [courseId])
+                    response["classes"] = convert_array_keys_to_camel_case(result)
+                if classId and courseId:
+                    sql = """
+                        select 
+                        course_name as course_name,
+                        test_method as test_method,
+                        credit as credit,
+                        grade as grade,
+                        hours as hours,
+                        Class_name as class_name,
+                        ljj_studentcourse.student_id as student_id,
+                        student_name as student_name,
+                        round(if(Grade>=60,(Grade-50)/10,0),1) as point,
+                        ljj_studentcourse.Term as term
+                        from ljj_studentcourse 
+                            join ljj_grade on 
+                            ljj_studentcourse.student_id = ljj_grade.student_id and 
+                            ljj_studentcourse.course_id = ljj_grade.course_id
+                            join ljj_class on ljj_studentcourse.class_id = ljj_class.class_id
+                        where ljj_studentcourse.class_id = %s and ljj_studentcourse.course_id = %s
+                    """
+                    result = safe_sql(sql, [classId, courseId])
+                    response["studentsScore"] = convert_array_keys_to_camel_case(result)
+                return response
+            else:
+                return None
+        except jwt.ExpiredSignatureError:
+            return None
+        except jwt.InvalidTokenError:
+            return None
+        except Exception as e:
+            return None
+
+        
