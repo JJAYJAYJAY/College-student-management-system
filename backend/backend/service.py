@@ -9,6 +9,28 @@ from backend import settings
 from uitls.response import convert_array_keys_to_camel_case
 from uitls.tools import safe_sql
 
+import functools
+
+
+def jwt_required(role_required=None):
+    def decorator(func):
+        @functools.wraps(func)
+        def wrapper(token, *args, **kwargs):
+            try:
+                payload = jwt.decode(token, settings.SECRET_KEY, algorithms=['HS256'])
+                role = payload.get('role')
+                if role_required is not None and role != role_required:
+                    return {"msg": "无权限访问"}
+                return func(payload, *args, **kwargs)
+            except jwt.ExpiredSignatureError:
+                return {"msg": "令牌过期"}
+            except jwt.InvalidTokenError:
+                return {"msg": "无效令牌"}
+            except Exception as e:
+                return {"msg": str(e)}
+        return wrapper
+    return decorator
+
 
 class LoginService:
     def __init__(self):
@@ -40,181 +62,137 @@ class StudentService:
         pass
 
     @staticmethod
-    def get_student_info(token):
-        try:
-            payload = jwt.decode(token, settings.SECRET_KEY, algorithms=['HS256'])
-            account = payload['account']
-            role = payload['role']
-            if role == 0:
-                sql = """
-                select 
-                    student_id,
-                    student_name, 
-                    if(Sex=0,'女','男') as sex,
-                    age, 
-                    had_credit, 
-                    region,   
-                    class_name, 
-                    major_name
-                from Ljj_Student join ljj_class on Ljj_Student.class_id = ljj_class.Class_id
-                    join ljj_major on ljj_class.major_id = ljj_major.major_id
-                where account = %s
-                """
-                result = safe_sql(sql, [account])
-                return result[0]
-            else:
-                return None
-        except jwt.ExpiredSignatureError:
-            return None
-        except jwt.InvalidTokenError:
-            return None
-        except Exception:
-            return None
+    @jwt_required(role_required=0)
+    def get_student_info(payload):
+        account = payload['account']
+        sql = """
+        select 
+            student_id,
+            student_name, 
+            if(Sex=0,'女','男') as sex,
+            age, 
+            had_credit, 
+            region,   
+            class_name, 
+            major_name
+        from Ljj_Student join ljj_class on Ljj_Student.class_id = ljj_class.Class_id
+            join ljj_major on ljj_class.major_id = ljj_major.major_id
+        where account = %s
+        """
+        result = safe_sql(sql, [account])
+        return result[0]
 
     @staticmethod
-    def get_student_grade(token):
-        try:
-            payload = jwt.decode(token, settings.SECRET_KEY, algorithms=['HS256'])
-            account = payload['account']
-            role = payload['role']
-            if role == 0:
-                response = {}
-                # 查询总绩点、总学时和学分
-                sql = """
-                    select 
-                    GPA
-                    from ljj_studentgpa
-                    where Student_id = %s
-                """
-                result = safe_sql(sql, [account])
-                response["GPA"] = result[0]["GPA"]
+    @jwt_required(role_required=0)
+    def get_student_grade(payload):
+        account = payload['account']
+        response = {}
+        # 查询总绩点、总学时和学分
+        sql = """
+            select 
+            GPA
+            from ljj_studentgpa
+            where Student_id = %s
+        """
+        result = safe_sql(sql, [account])
+        response["GPA"] = result[0]["GPA"]
 
-                sql = """
-                    select
-                    had_credit
-                    from ljj_student
-                    where student_id = %s
-                """
-                result = safe_sql(sql, [account])
-                response["had_credit"] = result[0]["had_credit"]
+        sql = """
+            select
+            had_credit
+            from ljj_student
+            where student_id = %s
+        """
+        result = safe_sql(sql, [account])
+        response["had_credit"] = result[0]["had_credit"]
 
-                sql = """
-                    select
-                    sum(hours) as total_hours
-                    from ljj_course join ljj_grade on ljj_course.course_id = ljj_grade.course_id
-                    where student_id = %s and grade is not null and grade >= 60
-                """
-                result = safe_sql(sql, [account])
-                response["total_hours"] = result[0]["total_hours"]
+        sql = """
+            select
+            sum(hours) as total_hours
+            from ljj_course join ljj_grade on ljj_course.course_id = ljj_grade.course_id
+            where student_id = %s and grade is not null and grade >= 60
+        """
+        result = safe_sql(sql, [account])
+        response["total_hours"] = result[0]["total_hours"]
 
-                # 查询历年绩点
-                sql = """
-                    select 
-                    GPA,
-                    term
-                    from ljj_studenttermgpa
-                    where Student_id = %s
-                """
-                result = safe_sql(sql, [account])
-                response["term_gpa"] = result
+        # 查询历年绩点
+        sql = """
+            select 
+            GPA,
+            term
+            from ljj_studenttermgpa
+            where Student_id = %s
+        """
+        result = safe_sql(sql, [account])
+        response["term_gpa"] = result
 
-                # 查询课程成绩
-                sql = """
-                    select 
-                    course_name,
-                    test_method,
-                    credit,
-                    ljj_grade.term,
-                    grade,
-                    hours,
-                    if(Grade>=60,(Grade-50)/10,0) as point
-                    from ljj_course join ljj_grade on ljj_course.course_id = ljj_grade.course_id
-                    where Grade is not null and student_id = %s
-                """
-                result = safe_sql(sql, [account])
-                response["course_grade"] = convert_array_keys_to_camel_case(result)
-                return response
-            else:
-                return None
-        except jwt.ExpiredSignatureError:
-            return None
-        except jwt.InvalidTokenError:
-            return None
-        except Exception:
-            return None
+        # 查询课程成绩
+        sql = """
+            select 
+            course_name,
+            test_method,
+            credit,
+            ljj_grade.term,
+            grade,
+            hours,
+            if(Grade>=60,(Grade-50)/10,0) as point
+            from ljj_course join ljj_grade on ljj_course.course_id = ljj_grade.course_id
+            where Grade is not null and student_id = %s
+        """
+        result = safe_sql(sql, [account])
+        response["course_grade"] = convert_array_keys_to_camel_case(result)
+        return response
 
     @staticmethod
-    def get_student_course(token, term, classId):
-        try:
-            payload = jwt.decode(token, settings.SECRET_KEY, algorithms=['HS256'])
-            role = payload['role']
-            response = {}
-            if role == 0:
-                sql = """
-                select 
-                    course_name,
-                    credit,
-                    teacher_name,
-                    hours,
-                    test_method,
-                    term
-                from ljj_classcourse
-                where term = %s and class_id = %s
-                """
-                result = safe_sql(sql, [term, classId])
-                response["course"] = convert_array_keys_to_camel_case(result)
-                sql = "select distinct term from ljj_classcourse where class_id = %s"
-                result = safe_sql(sql, [classId])
-                response["term"] = convert_array_keys_to_camel_case(result)
-                return response
-            else:
-                return None
-        except jwt.ExpiredSignatureError:
-            return None
-        except jwt.InvalidTokenError:
-            return None
-        except Exception:
-            return None
+    @jwt_required(role_required=0)
+    def get_student_course(payload, term, classId):
+        response = {}
+        sql = """
+        select 
+            course_name,
+            credit,
+            teacher_name,
+            hours,
+            test_method,
+            term
+        from ljj_classcourse
+        where term = %s and class_id = %s
+        """
+        result = safe_sql(sql, [term, classId])
+        response["course"] = convert_array_keys_to_camel_case(result)
+        sql = "select distinct term from ljj_classcourse where class_id = %s"
+        result = safe_sql(sql, [classId])
+        response["term"] = convert_array_keys_to_camel_case(result)
+        return response
 
     @staticmethod
-    def get_course_offering(token, classId):
-        try:
-            payload = jwt.decode(token, settings.SECRET_KEY, algorithms=['HS256'])
-            role = payload['role']
-            response = {}
-            if role == 0:
-                # 查询所有班级
-                sql = """
-                select 
-                    class_id,
-                    class_name
-                from ljj_class
-                """
-                result = safe_sql(sql)
-                response["allCourse"] = convert_array_keys_to_camel_case(result)
-                # 查询特定班级
-                sql = """
-                select 
-                    course_name,
-                    credit,
-                    teacher_name,
-                    hours,
-                    test_method,
-                    term
-                from ljj_classcourse
-                where class_id = %s
-                """
-                result = safe_sql(sql, [classId])
-                response["detailCourse"] = convert_array_keys_to_camel_case(result)
-                return response
-            else:
-                return None
-        except jwt.ExpiredSignatureError:
-            return None
-        except jwt.InvalidTokenError:
-            return None
-        except Exception:
-            return None
+    @jwt_required(role_required=0)
+    def get_course_offering(payload, classId):
+        response = {}
+        # 查询所有班级
+        sql = """
+        select 
+            class_id,
+            class_name
+        from ljj_class
+        """
+        result = safe_sql(sql)
+        response["allCourse"] = convert_array_keys_to_camel_case(result)
+        # 查询特定班级
+        sql = """
+        select 
+            course_name,
+            credit,
+            teacher_name,
+            hours,
+            test_method,
+            term
+        from ljj_classcourse
+        where class_id = %s
+        """
+        result = safe_sql(sql, [classId])
+        response["detailCourse"] = convert_array_keys_to_camel_case(result)
+        return response
 
 
 class TeacherService:
@@ -222,173 +200,111 @@ class TeacherService:
         pass
 
     @staticmethod
-    def get_teacher_info(token):
-        try:
-            payload = jwt.decode(token, settings.SECRET_KEY, algorithms=['HS256'])
-            account = payload['account']
-            role = payload['role']
-            if role == 1:
-                sql = """
+    @jwt_required(role_required=1)
+    def get_teacher_info(payload):
+        sql = """
+        select 
+            teacher_id,
+            teacher_name,
+            sex,
+            age,
+            job_title,
+            phone
+        from ljj_teacher
+        where account = %s
+        """
+        result = safe_sql(sql, [payload['account']])
+        return result[0]
+
+    @staticmethod
+    @jwt_required(role_required=1)
+    def get_teacher_course(payload):
+        response = {}
+        sql = """
+        select 
+            course_name,
+            credit,
+            hours,
+            class_name,
+            test_method,
+            term
+        from ljj_teachercourse
+        where teacher_id = %s
+        """
+        result = safe_sql(sql, [payload['account']])
+        response["course"] = convert_array_keys_to_camel_case(result)
+        return response
+
+    @staticmethod
+    @jwt_required(role_required=1)
+    def teacher_get_student_grade(payload, classId, courseId):
+        params = [payload['account']]
+        response = {}
+        sql = """
+        select distinct 
+            course_id,
+            course_name
+        from ljj_teachercourse
+        where Teacher_id = %s
+        """
+        result = safe_sql(sql, params)
+        response["courses"] = convert_array_keys_to_camel_case(result)
+        if courseId:
+            sql = """
                 select 
-                    teacher_id,
-                    teacher_name,
-                    sex,
-                    age,
-                    job_title,
-                    phone
-                from ljj_teacher
-                where account = %s
-                """
-                result = safe_sql(sql, [account])
-                return result[0]
-            else:
-                return None
-        except jwt.ExpiredSignatureError:
-            return None
-        except jwt.InvalidTokenError:
-            return None
-        except Exception:
-            return None
-
-    @staticmethod
-    def get_teacher_course(token):
-        try:
-            payload = jwt.decode(token, settings.SECRET_KEY, algorithms=['HS256'])
-            account = payload['account']
-            role = payload['role']
-            response = {}
-            if role == 1:
-                sql = """
+                class_id,
+                class_name
+                from ljj_teachercourse
+                where Teacher_id = %s and course_id = %s
+            """
+            result = safe_sql(sql, params + [courseId])
+            response["classes"] = convert_array_keys_to_camel_case(result)
+        if classId and courseId:
+            sql = """
                 select 
-                    course_name,
-                    credit,
-                    hours,
-                    class_name,
-                    test_method,
-                    term
-                from ljj_teachercourse
-                where teacher_id = %s
-                """
-                result = safe_sql(sql, [account])
-                response["course"] = convert_array_keys_to_camel_case(result)
-                return response
-            else:
-                return None
-        except jwt.ExpiredSignatureError:
-            return None
-        except jwt.InvalidTokenError:
-            return None
-        except Exception:
-            return None
+                ljj_studentcourse.course_id as course_id,
+                course_name as course_name,
+                test_method as test_method,
+                credit as credit,
+                grade as grade,
+                hours as hours,
+                Class_name as class_name,
+                ljj_studentcourse.student_id as student_id,
+                student_name as student_name,
+                round(if(Grade>=60,(Grade-50)/10,0),1) as point,
+                ljj_studentcourse.Term as term
+                from ljj_studentcourse 
+                    join ljj_grade on 
+                    ljj_studentcourse.student_id = ljj_grade.student_id and 
+                    ljj_studentcourse.course_id = ljj_grade.course_id
+                    join ljj_class on ljj_studentcourse.class_id = ljj_class.class_id
+                where ljj_studentcourse.class_id = %s and ljj_studentcourse.course_id = %s
+            """
+            result = safe_sql(sql, [classId, courseId])
+            response["studentsScore"] = convert_array_keys_to_camel_case(result)
+        return response
 
     @staticmethod
-    def teacher_get_student_grade(token, classId, courseId):
-        try:
-            payload = jwt.decode(token, settings.SECRET_KEY, algorithms=['HS256'])
-            account = payload['account']
-            role = payload['role']
-            params = [account]
-            response = {}
-            if role == 1:
-                sql = """
-                select distinct 
-                    course_id,
-                    course_name
-                from ljj_teachercourse
-                where Teacher_id = %s
-                """
-                result = safe_sql(sql, params)
-                response["courses"] = convert_array_keys_to_camel_case(result)
-                if courseId:
-                    sql = """
-                        select 
-                        class_id,
-                        class_name
-                        from ljj_teachercourse
-                        where Teacher_id = %s and course_id = %s
-                    """
-                    result = safe_sql(sql, params + [courseId])
-                    response["classes"] = convert_array_keys_to_camel_case(result)
-                if classId and courseId:
-                    sql = """
-                        select 
-                        ljj_studentcourse.course_id as course_id,
-                        course_name as course_name,
-                        test_method as test_method,
-                        credit as credit,
-                        grade as grade,
-                        hours as hours,
-                        Class_name as class_name,
-                        ljj_studentcourse.student_id as student_id,
-                        student_name as student_name,
-                        round(if(Grade>=60,(Grade-50)/10,0),1) as point,
-                        ljj_studentcourse.Term as term
-                        from ljj_studentcourse 
-                            join ljj_grade on 
-                            ljj_studentcourse.student_id = ljj_grade.student_id and 
-                            ljj_studentcourse.course_id = ljj_grade.course_id
-                            join ljj_class on ljj_studentcourse.class_id = ljj_class.class_id
-                        where ljj_studentcourse.class_id = %s and ljj_studentcourse.course_id = %s
-                    """
-                    result = safe_sql(sql, [classId, courseId])
-                    response["studentsScore"] = convert_array_keys_to_camel_case(result)
-                return response
-            else:
-                return None
-        except jwt.ExpiredSignatureError:
-            return None
-        except jwt.InvalidTokenError:
-            return None
-        except Exception:
-            return None
+    @jwt_required(role_required=1)
+    def update_student_grade(payload, data):
+        if len(data) == 0:
+            return {"msg": "没有修改"}
+        sql = "update ljj_grade set grade = %s where student_id = %s and course_id = %s"
+        params = [(item['grade'], item['studentId'], item['courseId']) for item in data]
+        with connection.cursor() as cursor:
+            cursor.executemany(sql, params)
+            connection.commit()
+        return {"msg": "更新成功"}
 
     @staticmethod
-    def update_student_grade(token, data):
-        try:
-            payload = jwt.decode(token, settings.SECRET_KEY, algorithms=['HS256'])
-            role = payload['role']
-            if len(data) == 0:
-                return {"msg": "没有修改"}
-            if role == 1:
-                sql = "update ljj_grade set grade = %s where student_id = %s and course_id = %s"
-                params = [(item['grade'], item['studentId'], item['courseId']) for item in data]
-                with connection.cursor() as cursor:
-                    cursor.executemany(sql, params)
-                    connection.commit()
-                return {"msg": "更新成功"}
-            else:
-                return None
-        except jwt.ExpiredSignatureError:
-            return None
-        except jwt.InvalidTokenError:
-            return None
-        except Exception:
-            connection.rollback()
-            return None
-
-    @staticmethod
-    def update_student_from_excel(token, data):
-        try:
-            payload = jwt.decode(token, settings.SECRET_KEY, algorithms=['HS256'])
-            role = payload['role']
-            params = [(data.loc[i, '成绩'], data.loc[i, '学号'], data.loc[i, '课程号']) for i in range(len(data))]
-            print(params)
-            if role == 1:
-                sql = "update ljj_grade set grade = %s where student_id = %s and course_id = %s"
-                params = [(data.loc[i, '成绩'], data.loc[i, '学号'], data.loc[i, '课程号']) for i in range(len(data))]
-                with connection.cursor() as cursor:
-                    cursor.executemany(sql, params)
-                    connection.commit()
-                return {"msg": "更新成功"}
-            else:
-                return None
-        except jwt.ExpiredSignatureError:
-            return None
-        except jwt.InvalidTokenError:
-            return None
-        except Exception:
-            connection.rollback()
-            return None
+    @jwt_required(role_required=1)
+    def update_student_from_excel(payload, data):
+        sql = "update ljj_grade set grade = %s where student_id = %s and course_id = %s"
+        params = [(data.loc[i, '成绩'], data.loc[i, '学号'], data.loc[i, '课程号']) for i in range(len(data))]
+        with connection.cursor() as cursor:
+            cursor.executemany(sql, params)
+            connection.commit()
+        return {"msg": "更新成功"}
 
 
 class AdminService:
@@ -396,304 +312,304 @@ class AdminService:
         pass
 
     @staticmethod
-    def get_admin_info(token):
-        try:
-            payload = jwt.decode(token, settings.SECRET_KEY, algorithms=['HS256'])
-            account = payload['account']
-            role = payload['role']
-            if role == 2:
-                sql = """
+    @jwt_required(role_required=2)
+    def get_admin_info(payload):
+        account = payload['account']
+        sql = "SELECT admin_id, admin_name FROM ljj_admin WHERE account = %s"
+        result = safe_sql(sql, [account])
+        return result[0] if result else None
+
+    @staticmethod
+    @jwt_required(role_required=2)
+    def admin_get_student_info(payload):
+        response = {}
+        with transaction.atomic():
+            sql = """
+            select 
+                ljj_student.student_id as student_id,
+                ljj_student.student_name as student_name,
+                if(Sex=0,'女','男') as sex,
+                age,
+                had_credit,
+                region,
+                class_name,
+                major_name,
+                round(GPA,3) as GPA
+                from ljj_student join ljj_class on ljj_student.class_id = ljj_class.class_id
+                join ljj_major on ljj_class.major_id = ljj_major.major_id 
+                join ljj_studentgpa on ljj_student.student_id = ljj_studentgpa.student_id
+            """
+            result = safe_sql(sql)
+            response["students"] = convert_array_keys_to_camel_case(result)
+            sql = """
                 select 
-                    admin_id,
-                    admin_name
-                from ljj_admin
-                where account = %s
+                region as name,
+                count(*) as value
+                from ljj_student 
+                group by region 
+            """
+            result = safe_sql(sql)
+            response["regionData"] = convert_array_keys_to_camel_case(result)
+
+            # 统计男女比例
+            sql = """
+                select
+                    count(*) as value,
+                    if(sex = 0,'女','男') as name
+                from ljj_student
+                group by sex
+            """
+            result = safe_sql(sql)
+            response["sexData"] = convert_array_keys_to_camel_case(result)
+
+            sql = """
+            select
+                round(count(*),0) as total_student,
+                round((select avg(GPA) from ljj_studentgpa),3) as average_GPA
+            from ljj_student
+            """
+            result = safe_sql(sql)
+            response['totalData'] = result[0]
+            return response
+
+    @staticmethod
+    @jwt_required(role_required=2)
+    def admin_get_teacher_info(payload):
+        response = {}
+        with transaction.atomic():
+            sql = """
+            select 
+                teacher_id,
+                teacher_name,
+                if(Sex=0,'女','男') as sex,
+                age,
+                job_title,
+                phone
+                from ljj_teacher
+            """
+            result = safe_sql(sql)
+            response["teachers"] = convert_array_keys_to_camel_case(result)
+
+            sql = """
+                select 
+                job_title as name,
+                count(*) as value
+                from ljj_teacher
+                group by job_title
+            """
+            result = safe_sql(sql)
+            response["jobTitleData"] = convert_array_keys_to_camel_case(result)
+
+            sql = """
+                select
+                    count(*) as value,
+                    if(Sex = 0,'女','男') as name
+                from
+                ljj_teacher
+                group by sex
+            """
+            result = safe_sql(sql)
+            response["sexData"] = convert_array_keys_to_camel_case(result)
+
+            sql = """
+            select
+                round(count(*),0) as total_teacher,
+                round(avg(age),2) as average_age
+            from ljj_teacher
+            """
+            result = safe_sql(sql)
+            response['totalData'] = result[0]
+        return response
+
+    @staticmethod
+    @jwt_required(role_required=2)
+    def admin_get_student_change_info(payload):
+        response = {}
+        with transaction.atomic():
+            sql = """
+            select 
+                student_id,
+                student_name,
+                if(sex=0,'女','男') as sex,
+                age,
+                had_credit,
+                region,
+                ljj_student.class_id as class_id,
+                class_name,
+                ljj_class.Major_id as major_id,
+                major_name
+                from ljj_student join ljj_class on ljj_student.class_id = ljj_class.class_id
+                join ljj_major on ljj_class.major_id = ljj_major.major_id
+            """
+            result = safe_sql(sql)
+            response["students"] = convert_array_keys_to_camel_case(result)
+
+            sql = """
+                select
+                    class_id,
+                    class_name
+                from ljj_class
+            """
+            result = safe_sql(sql)
+            response["classes"] = convert_array_keys_to_camel_case(result)
+            return response
+
+    @staticmethod
+    @jwt_required(role_required=2)
+    def update_student_info(payload, data):
+        if len(data) == 0:
+            return {"msg": "没有修改"}
+        sql = """
+            update ljj_student
+            set student_name = %s, age = %s, sex=%s, class_id = %s, region = %s
+            where student_id = %s
+        """
+        params = [
+            (
+                item['studentName'],
+                item["age"],
+                1 if item['sex'] == "男" else 0,
+                item['classId'],
+                item['region'],
+                item['studentId']
+            ) for item in data
+        ]
+        pprint(params)
+        with connection.cursor() as cursor:
+            cursor.executemany(sql, params)
+            connection.commit()
+        return {"msg": "更新成功"}
+
+    @staticmethod
+    @jwt_required(role_required=2)
+    def delete_student_info(payload, studentId):
+        sql = "delete from ljj_student where student_id = %s"
+        with connection.cursor() as cursor:
+            cursor.execute(sql, [studentId])
+            connection.commit()
+        return {"msg": "删除成功"}
+
+    @staticmethod
+    @jwt_required(role_required=2)
+    def update_student_info_from_excel(payload, data):
+        with transaction.atomic():
+            sql = """
+                select 
+                student_id
+                from ljj_student
                 """
-                result = safe_sql(sql, [account])
-                return result[0]
-            else:
-                return None
-        except jwt.ExpiredSignatureError:
-            return None
-        except jwt.InvalidTokenError:
-            return None
-        except Exception:
-            return None
-
-    @staticmethod
-    def admin_get_student_info(token):
-        try:
-            payload = jwt.decode(token, settings.SECRET_KEY, algorithms=['HS256'])
-            role = payload['role']
-            response = {}
-            if role == 2:
-                with transaction.atomic():
+            result = safe_sql(sql)
+            student_id = [item['student_id'] for item in result]
+            params = [
+                [
+                    data.loc[i, "学生姓名"],
+                    0 if data.loc[i, "性别"] == '女' else 1,
+                    data.loc[i, "年龄"],
+                    data.loc[i, "生源地"],
+                    data.loc[i, "班级号"],
+                    data.loc[i, '学号'],
+                ] for i in range(len(data))
+            ]
+            for item in params:
+                if item[-1] in student_id:
                     sql = """
-                    select 
-                        ljj_student.student_id as student_id,
-                        ljj_student.student_name as student_name,
-                        if(Sex=0,'女','男') as sex,
-                        age,
-                        had_credit,
-                        region,
-                        class_name,
-                        major_name,
-                        round(GPA,3) as GPA
-                        from ljj_student join ljj_class on ljj_student.class_id = ljj_class.class_id
-                        join ljj_major on ljj_class.major_id = ljj_major.major_id 
-                        join ljj_studentgpa on ljj_student.student_id = ljj_studentgpa.student_id
-                    """
-                    result = safe_sql(sql)
-                    response["students"] = convert_array_keys_to_camel_case(result)
-                    sql = """
-                        select 
-                        region as name,
-                        count(*) as value
-                        from ljj_student 
-                        group by region 
-                    """
-                    result = safe_sql(sql)
-                    response["regionData"] = convert_array_keys_to_camel_case(result)
-
-                    # 统计男女比例
-                    sql = """
-                        select
-                            count(*) as value,
-                            if(sex = 0,'女','男') as name
-                        from ljj_student
-                        group by sex
-                    """
-                    result = safe_sql(sql)
-                    response["sexData"] = convert_array_keys_to_camel_case(result)
-
-                    sql = """
-                    select
-                        round(count(*),0) as total_student,
-                        round((select avg(GPA) from ljj_studentgpa),3) as average_GPA
-                    from ljj_student
-                    """
-                    result = safe_sql(sql)
-                    response['totalData'] = result[0]
-                    return response
-            else:
-                return None
-        except jwt.ExpiredSignatureError:
-            return None
-        except jwt.InvalidTokenError:
-            return None
-        except Exception:
-            return None
-
-    @staticmethod
-    def admin_get_teacher_info(token):
-        try:
-            payload = jwt.decode(token, settings.SECRET_KEY, algorithms=['HS256'])
-            role = payload['role']
-            response = {}
-            if role == 2:
-                with transaction.atomic():
-                    sql = """
-                    select 
-                        teacher_id,
-                        teacher_name,
-                        if(Sex=0,'女','男') as sex,
-                        age,
-                        job_title,
-                        phone
-                        from ljj_teacher
-                    """
-                    result = safe_sql(sql)
-                    response["teachers"] = convert_array_keys_to_camel_case(result)
-
-                    sql = """
-                        select 
-                        job_title as name,
-                        count(*) as value
-                        from ljj_teacher
-                        group by job_title
-                    """
-                    result = safe_sql(sql)
-                    response["jobTitleData"] = convert_array_keys_to_camel_case(result)
-
-                    sql = """
-                        select
-                            count(*) as value,
-                            if(Sex = 0,'女','男') as name
-                        from
-                        ljj_teacher
-                        group by sex
-                    """
-                    result = safe_sql(sql)
-                    response["sexData"] = convert_array_keys_to_camel_case(result)
-
-                    sql = """
-                    select
-                        round(count(*),0) as total_teacher,
-                        round(avg(age),2) as average_age
-                    from ljj_teacher
-                    """
-                    result = safe_sql(sql)
-                    response['totalData'] = result[0]
-                return response
-            else:
-                return None
-        except jwt.ExpiredSignatureError:
-            return None
-        except jwt.InvalidTokenError:
-            return None
-        except Exception:
-            return None
-
-    @staticmethod
-    def admin_get_student_change_info(token):
-        try:
-            payload = jwt.decode(token, settings.SECRET_KEY, algorithms=['HS256'])
-            role = payload['role']
-            response = {}
-            if role == 2:
-                with transaction.atomic():
-                    sql = """
-                    select 
-                        student_id,
-                        student_name,
-                        if(sex=0,'女','男') as sex,
-                        age,
-                        had_credit,
-                        region,
-                        ljj_student.class_id as class_id,
-                        class_name,
-                        ljj_class.Major_id as major_id,
-                        major_name
-                        from ljj_student join ljj_class on ljj_student.class_id = ljj_class.class_id
-                        join ljj_major on ljj_class.major_id = ljj_major.major_id
-                    """
-                    result = safe_sql(sql)
-                    response["students"] = convert_array_keys_to_camel_case(result)
-
-                    sql = """
-                        select
-                            class_id,
-                            class_name
-                        from ljj_class
-                    """
-                    result = safe_sql(sql)
-                    response["classes"] = convert_array_keys_to_camel_case(result)
-
-                    return response
-            else:
-                return None
-        except jwt.ExpiredSignatureError:
-            return None
-        except jwt.InvalidTokenError:
-            return None
-        except Exception:
-            return None
-
-    @staticmethod
-    def update_student_info(token, data):
-        try:
-            payload = jwt.decode(token, settings.SECRET_KEY, algorithms=['HS256'])
-            role = payload['role']
-            if len(data) == 0:
-                return {"msg": "没有修改"}
-            if role == 2:
-                sql = """
                     update ljj_student
-                    set student_name = %s, age = %s, sex=%s, class_id = %s, region = %s
-                    where student_id = %s
-                """
-                params = [
-                    (
-                        item['studentName'],
-                        item["age"],
-                        1 if item['sex'] == "男" else 0,
-                        item['classId'],
-                        item['region'],
-                        item['studentId']
-                    ) for item in data
-                ]
-                pprint(params)
-                with connection.cursor() as cursor:
-                    cursor.executemany(sql, params)
-                    connection.commit()
-                return {"msg": "更新成功"}
-            else:
-                return None
-        except jwt.ExpiredSignatureError:
-            return None
-        except jwt.InvalidTokenError:
-            return None
-        except Exception:
-            traceback.print_stack()
-            connection.rollback()
-            return None
-
-    @staticmethod
-    def delete_student_info(token, studentId):
-        try:
-            payload = jwt.decode(token, settings.SECRET_KEY, algorithms=['HS256'])
-            role = payload['role']
-            if role == 2:
-                sql = "delete from ljj_student where student_id = %s"
-                with connection.cursor() as cursor:
-                    cursor.execute(sql, [studentId])
-                    connection.commit()
-                return {"msg": "删除成功"}
-            else:
-                return None
-        except jwt.ExpiredSignatureError:
-            return None
-        except jwt.InvalidTokenError:
-            return None
-        except Exception:
-            connection.rollback()
-            return None
-
-    @staticmethod
-    def update_student_info_from_excel(token, data):
-        try:
-            payload = jwt.decode(token, settings.SECRET_KEY, algorithms=['HS256'])
-            role = payload['role']
-            if role == 2:
-                with transaction.atomic():
+                    set student_name = %s, sex = %s, age = %s, region = %s, class_id = %s
+                    where student_id = %s 
+                    """
+                    safe_sql(sql, item)
+                else:
                     sql = """
-                        select 
-                        student_id
-                        from ljj_student
-                        """
-                    result = safe_sql(sql)
-                    student_id = [item['student_id'] for item in result]
-                    params = [
-                        [
-                            data.loc[i, "学生姓名"],
-                            0 if data.loc[i, "性别"] == '女' else 1,
-                            data.loc[i, "年龄"],
-                            data.loc[i, "生源地"],
-                            data.loc[i, "班级号"],
-                            data.loc[i, '学号'],
-                        ] for i in range(len(data))
-                    ]
-                    for item in params:
-                        if item[-1] in student_id:
-                            sql = """
-                            update ljj_student
-                            set student_name = %s, sex = %s, age = %s, region = %s, class_id = %s
-                            where student_id = %s 
-                            """
-                            safe_sql(sql, item)
-                        else:
-                            sql = """
-                                call insert_student(%s,%s,%s,%s,%s,%s,%s)
-                            """
-                            safe_sql(sql, [item[-1], item[0], item[2], item[1], item[3], item[4], item[-1]])
-                    return {"msg": "更新成功"}
-            else:
-                return None
-        except jwt.ExpiredSignatureError:
-            return None
-        except jwt.InvalidTokenError:
-            return None
-        except Exception:
-            traceback.print_stack()
-            connection.rollback()
-            return None
+                        call insert_student(%s,%s,%s,%s,%s,%s,%s)
+                    """
+                    safe_sql(sql, [item[-1], item[0], item[2], item[1], item[3], item[4], item[-1]])
+            return {"msg": "更新成功"}
+
+    @staticmethod
+    @jwt_required(role_required=2)
+    def admin_get_teacher_change_info(payload):
+        response = {}
+        with transaction.atomic():
+            sql = """
+                select 
+                    teacher_id,
+                    teacher_name,
+                    job_title,
+                    age,
+                    if(Sex=0,'女','男') as sex,
+                    phone
+                from ljj_teacher
+            """
+            result = safe_sql(sql)
+            response["teachers"] = convert_array_keys_to_camel_case(result)
+            return response
+
+    @staticmethod
+    @jwt_required(role_required=2)
+    def update_teacher_info(payload, data):
+        if len(data) == 0:
+            return {"msg": "没有修改"}
+        sql = """
+            update ljj_teacher
+            set teacher_name = %s, Sex = %s, age = %s, job_title = %s, phone = %s
+            where teacher_id = %s
+        """
+        params = [
+            (
+                item['teacherName'],
+                0 if item['sex'] == "女" else 1,
+                item['age'],
+                item['jobTitle'],
+                item['phone'],
+                item['teacherId']
+            ) for item in data
+        ]
+        with connection.cursor() as cursor:
+            cursor.executemany(sql, params)
+            connection.commit()
+        return {"msg": "更新成功"}
+
+    @staticmethod
+    @jwt_required(role_required=2)
+    def delete_teacher_info(payload, teacherId):
+        sql = "delete from ljj_teacher where teacher_id = %s"
+        with connection.cursor() as cursor:
+            cursor.execute(sql, [teacherId])
+            connection.commit()
+        return {"msg": "删除成功"}
+
+    @staticmethod
+    @jwt_required(role_required=2)
+    def update_teacher_info_from_excel(payload, data):
+        with transaction.atomic():
+            sql = """
+                select 
+                teacher_id
+                from ljj_teacher
+                """
+            result = safe_sql(sql)
+            teacher_id = [item['teacher_id'] for item in result]
+            params = [
+                [
+                    data.loc[i, "教师姓名"],
+                    0 if data.loc[i, "性别"] == '女' else 1,
+                    data.loc[i, "年龄"],
+                    data.loc[i, "职称"],
+                    data.loc[i, '电话'],
+                    data.loc[i, '教师号'],
+                ] for i in range(len(data))
+            ]
+            for item in params:
+                if item[-1] in teacher_id:
+                    sql = """
+                    update ljj_teacher
+                    set teacher_name = %s, sex = %s, age = %s, job_title = %s, phone = %s
+                    where teacher_id = %s 
+                    """
+                    safe_sql(sql, item)
+                else:
+                    sql = """
+                        call insert_teacher(%s,%s,%s,%s,%s,%s)
+                    """
+                    safe_sql(sql, [item[-1], item[0], item[1], item[2], item[3], item[4]])
+            return {"msg": "更新成功"}

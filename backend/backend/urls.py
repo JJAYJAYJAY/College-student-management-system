@@ -36,4 +36,8 @@ urlpatterns = [
     path('api/admin/update_student_info', UpdateStudentInfo.as_view(), name='update_student_info'),
     path('api/admin/delete_student_info', DeleteStudentInfo.as_view(), name='delete_student_info'),
     path('api/admin/update_student_info_from_excel', UpdateStudentInfoFromExcel.as_view(), name='update_student_info_from_excel'),
+    path('api/admin/admin_get_teacher_change_info', AdminGetTeacherChangeInfo.as_view(), name='admin_teacher_change'),
+    path('api/admin/update_teacher_info', UpdateTeacherInfo.as_view(), name='update_teacher_info'),
+    path('api/admin/delete_teacher_info', DeleteTeacherInfo.as_view(), name='delete_teacher_info'),
+    path('api/admin/update_teacher_info_from_excel', UpdateTeacherInfoFromExcel.as_view(), name='update_teacher_info_from_excel')
 ]

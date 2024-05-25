@@ -319,10 +319,6 @@ const uploadVisible=ref(false)
 const upload=ref()
 const token=sessionStorage.getItem('token')
 
-const handleChange=()=>{
-
-}
-
 onMounted(()=> {
   adminGetStudentChangeInfo().then(res => {
     if (res.status === 200) {
@@ -332,9 +328,6 @@ onMounted(()=> {
   })
 })
 
-watch(
-
-)
 
 studentData.value = []
 
