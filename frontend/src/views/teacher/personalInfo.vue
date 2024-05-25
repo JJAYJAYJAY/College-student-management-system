@@ -16,7 +16,6 @@
 
 <script setup lang="js">
 import {onMounted, ref} from "vue";
-import {getStudentInfo} from "@/api/student.js";
 import {getTeacherInfo} from "@/api/teacher.js";
 
 const studentData=ref([])

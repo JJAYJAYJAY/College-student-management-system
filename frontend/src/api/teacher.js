@@ -7,3 +7,11 @@ export function getTeacherInfo(){
         baseURL: BASEURL
     })
 }
+
+export function getTeacherCourse(){
+    return axios.request({
+        method: 'post',
+        url: '/teacher/get_teacher_course',
+        baseURL: BASEURL
+    })
+}

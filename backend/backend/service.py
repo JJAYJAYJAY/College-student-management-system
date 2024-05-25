@@ -25,7 +25,7 @@ class LoginService:
                 "token": jwt.encode({"account": account, "role": result[0]["role"]}, settings.SECRET_KEY,
                                     algorithm='HS256'),
                 "role": result[0]["role"],
-                "classId":  class_id[0]["class_id"]
+                "classId": class_id[0]["class_id"]
             }
             return response
         else:
@@ -238,6 +238,37 @@ class TeacherService:
                 """
                 result = safe_sql(sql, [account])
                 return result[0]
+            else:
+                return None
+        except jwt.ExpiredSignatureError:
+            return None
+        except jwt.InvalidTokenError:
+            return None
+        except Exception as e:
+            return None
+
+    @staticmethod
+    def get_teacher_course(token):
+        try:
+            payload = jwt.decode(token, settings.SECRET_KEY, algorithms=['HS256'])
+            account = payload['account']
+            role = payload['role']
+            response = {}
+            if role == 1:
+                sql = """
+                select 
+                    course_name,
+                    credit,
+                    hours,
+                    class_name,
+                    test_method,
+                    term
+                from ljj_teachercourse
+                where teacher_id = %s
+                """
+                result = safe_sql(sql, [account])
+                response["course"] = convert_array_keys_to_camel_case(result)
+                return response
             else:
                 return None
         except jwt.ExpiredSignatureError:

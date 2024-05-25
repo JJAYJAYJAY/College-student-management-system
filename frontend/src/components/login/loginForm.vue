@@ -108,10 +108,6 @@ let form= reactive({
 
 const router= useRouter();
 
-const showFail = () => {
-  Message.error('登录失败，请检查用户名和密码');
-}
-
 const userStore = useUserStore();
 
 const handleSubmit = (e)=>{
@@ -135,9 +131,12 @@ const handleSubmit = (e)=>{
           router.push({path: '/home/adminProfile'});
           break;
       }
-    }else{
-      showFail();
     }
+  }).catch((res)=>{
+    if(res.status === 400)
+      Message.error('登录失败，请检查用户名和密码');
+    else
+      Message.error('服务器错误，请稍后再试');
   })
 }
 </script>
