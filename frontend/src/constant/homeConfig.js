@@ -83,15 +83,15 @@ export const MENU = {
             icon:'icon-archive',
             menuItem:[
                 {
-                    name:"学生信息录入",
+                    name:"学生信息管理",
                     path:"studentInfoInput"
                 },
                 {
-                    name:"教师信息录入",
+                    name:"教师信息管理",
                     path:"teacherInfoInput"
                 },
                 {
-                    name:"开课录入",
+                    name:"开课管理",
                     path:"courseOfferingInput"
                 }
             ]

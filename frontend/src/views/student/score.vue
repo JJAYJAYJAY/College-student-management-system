@@ -168,7 +168,6 @@ watch(scoreData, (newData) => {
       value: item
     }
   })
-  console.log(columns.value[4].filterable.filters)
   //统计学分类型
   let creditSet = new Set()
   for (let i = 0; i < newData.length; i++) {

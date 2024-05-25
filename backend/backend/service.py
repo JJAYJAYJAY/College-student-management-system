@@ -3,7 +3,7 @@ from typing import Dict, Any
 
 import jwt
 
-from django.db import connection
+from django.db import connection, transaction
 from backend import settings
 from uitls.response import convert_dict_keys_to_camel_case, convert_array_keys_to_camel_case
 from uitls.tools import safe_sql
@@ -410,6 +410,71 @@ class AdminService:
                 """
                 result = safe_sql(sql, [account])
                 return result[0]
+            else:
+                return None
+        except jwt.ExpiredSignatureError:
+            return None
+        except jwt.InvalidTokenError:
+            return None
+        except Exception as e:
+            return None
+
+
+    @staticmethod
+    def admin_get_student_info(token):
+        try:
+            payload = jwt.decode(token, settings.SECRET_KEY, algorithms=['HS256'])
+            role = payload['role']
+            response = {}
+            if role == 2:
+                with transaction.atomic():
+                    sql = """
+                    select 
+                        ljj_student.student_id as student_id,
+                        ljj_student.student_name as student_name,
+                        if(Sex=0,'女','男') as sex,
+                        age,
+                        had_credit,
+                        region,
+                        class_name,
+                        major_name,
+                        round(GPA,3) as GPA
+                        from ljj_student join ljj_class on ljj_student.class_id = ljj_class.class_id
+                        join ljj_major on ljj_class.major_id = ljj_major.major_id 
+                        join ljj_studentgpa on ljj_student.student_id = ljj_studentgpa.student_id
+                    """
+                    result = safe_sql(sql)
+                    response["students"] = convert_array_keys_to_camel_case(result)
+                    sql = """
+                        select 
+                        region as name,
+                        count(*) as value
+                        from ljj_student 
+                        group by region 
+                    """
+                    result = safe_sql(sql)
+                    response["regionData"] = convert_array_keys_to_camel_case(result)
+
+                    # 统计男女比例
+                    sql = """
+                        select
+                            count(*) as value,
+                            if(sex = 0,'女','男') as name
+                        from ljj_student
+                        group by sex
+                    """
+                    result = safe_sql(sql)
+                    response["sexData"] = convert_array_keys_to_camel_case(result)
+
+                    sql = """
+                    select
+                        round(count(*),0) as total_student,
+                        round((select avg(GPA) from ljj_studentgpa),3) as average_GPA
+                    from ljj_student
+                    """
+                    result = safe_sql(sql)
+                    response['totalData'] = result[0]
+                    return response
             else:
                 return None
         except jwt.ExpiredSignatureError:
