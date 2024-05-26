@@ -80,3 +80,23 @@ export function deleteTeacherInfo(data){
 }
 
 export const updateTeacherInfoFromExcel = BASEURL + '/admin/update_teacher_info_from_excel';
+
+export function adminGetCourseInfo(data){
+    return axios.request({
+        method: 'post',
+        data: data,
+        url: '/admin/admin_get_course_info',
+        baseURL: BASEURL
+    })
+}
+
+export function deleteCourseInfo(data){
+    return axios.request({
+        method: 'post',
+        data: data,
+        url: '/admin/delete_course_info',
+        baseURL: BASEURL
+    })
+}
+
+export const updateCourseInfoFromExcel = BASEURL + '/admin/update_course_info_from_excel';

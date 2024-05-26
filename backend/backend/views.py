@@ -257,3 +257,42 @@ class UpdateTeacherInfoFromExcel(APIView):
             return Response().ok(response, status=200)
         else:
             return Response().fail('更新教师信息失败', status=400)
+
+
+class AdminGetCourseInfo(APIView):
+    def post(self, request):
+        # 请求头获得token
+        token = get_token_from_request(request)
+        classId = request.data.get('classId')
+        response = AdminService.admin_get_course_info(token, classId)
+        if response:
+            return Response().ok(response, status=200)
+        else:
+            return Response().fail('获取课程信息失败', status=400)
+
+
+class DeleteCourseInfo(APIView):
+    def post(self, request):
+        # 请求头获得token
+        token = get_token_from_request(request)
+        classId = request.data.get('classId')
+        courseId = request.data.get('courseId')
+        response = AdminService.delete_course_info(token, classId, courseId)
+        if response:
+            return Response().ok(response, status=200)
+        else:
+            return Response().fail('删除课程信息失败', status=400)
+
+
+class UpdateCourseInfoFromExcel(APIView):
+    def post(self, request):
+        # 请求头获得token
+        token = get_token_from_request(request)
+        # 读取excel文件
+        excelFile = request.FILES.get('file')
+        updateData = pd.read_excel(excelFile)
+        response = AdminService.update_course_from_excel(token, updateData)
+        if response and response['code'] != 400:
+            return Response().ok(response, status=200)
+        else:
+            return Response().fail('更新课程信息失败', status=400)

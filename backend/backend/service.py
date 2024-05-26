@@ -1,4 +1,4 @@
-import traceback
+import functools
 from pprint import pprint
 from typing import Any
 
@@ -8,8 +8,6 @@ from django.db import connection, transaction
 from backend import settings
 from uitls.response import convert_array_keys_to_camel_case
 from uitls.tools import safe_sql
-
-import functools
 
 
 def jwt_required(role_required=None):
@@ -23,11 +21,11 @@ def jwt_required(role_required=None):
                     return {"msg": "无权限访问"}
                 return func(payload, *args, **kwargs)
             except jwt.ExpiredSignatureError:
-                return {"msg": "令牌过期"}
+                return {"code": 400, "msg": "令牌过期"}
             except jwt.InvalidTokenError:
-                return {"msg": "无效令牌"}
+                return {"code": 400, "msg": "无效令牌"}
             except Exception as e:
-                return {"msg": str(e)}
+                return {"code": 400, "msg": str(e)}
         return wrapper
     return decorator
 
@@ -335,9 +333,9 @@ class AdminService:
                 class_name,
                 major_name,
                 round(GPA,3) as GPA
-                from ljj_student join ljj_class on ljj_student.class_id = ljj_class.class_id
-                join ljj_major on ljj_class.major_id = ljj_major.major_id 
-                join ljj_studentgpa on ljj_student.student_id = ljj_studentgpa.student_id
+                from ljj_student left join ljj_class on ljj_student.class_id = ljj_class.class_id
+                left join ljj_major  on ljj_class.major_id = ljj_major.major_id 
+                left join ljj_studentgpa on ljj_student.student_id = ljj_studentgpa.student_id
             """
             result = safe_sql(sql)
             response["students"] = convert_array_keys_to_camel_case(result)
@@ -438,8 +436,8 @@ class AdminService:
                 class_name,
                 ljj_class.Major_id as major_id,
                 major_name
-                from ljj_student join ljj_class on ljj_student.class_id = ljj_class.class_id
-                join ljj_major on ljj_class.major_id = ljj_major.major_id
+                from ljj_student left join ljj_class on ljj_student.class_id = ljj_class.class_id
+                left join ljj_major on ljj_class.major_id = ljj_major.major_id
             """
             result = safe_sql(sql)
             response["students"] = convert_array_keys_to_camel_case(result)
@@ -613,3 +611,100 @@ class AdminService:
                     """
                     safe_sql(sql, [item[-1], item[0], item[1], item[2], item[3], item[4]])
             return {"msg": "更新成功"}
+
+    @staticmethod
+    @jwt_required(role_required=2)
+    def admin_get_course_info(payload, classId):
+        response = {}
+        with transaction.atomic():
+            sql = """
+            select 
+                major_id,
+                major_name
+            from ljj_major
+            """
+            result = safe_sql(sql)
+            response["majorData"] = convert_array_keys_to_camel_case(result)
+
+            sql = """
+                select 
+                major_id,
+                class_name,
+                class_id
+                from ljj_class
+            """
+            result = safe_sql(sql)
+            majorClassDict = {}
+            for item in result:
+                if item['major_id'] not in majorClassDict:
+                    majorClassDict[item['major_id']] = []
+                majorClassDict[item['major_id']].append({
+                    "className": item['class_name'],
+                    "classId": item['class_id']
+                })
+            response["classData"] = majorClassDict
+
+            sql = """
+            select
+                Major_name as majorName,
+                ljj_class.class_id as classId,
+                ljj_class.class_name as className,
+                course_id as courseId,
+                course_name as courseName,
+                test_method as testMethod,
+                credit as credit,
+                hours as hours,
+                term as term,
+                teacher_name as teacherName
+            from ljj_classcourse 
+            join ljj_class on ljj_classcourse.class_id = ljj_class.class_id
+            join ljj_major on ljj_class.major_id = ljj_major.major_id
+            where ljj_classcourse.class_id = %s
+            """
+            result = safe_sql(sql, [classId])
+            if result:
+                response['courseData'] = convert_array_keys_to_camel_case(result)
+        return response
+
+    @staticmethod
+    @jwt_required(role_required=2)
+    def delete_course_info(payload, classId, courseId):
+        sql = "delete from ljj_courseoffering where class_id =%s and course_id = %s"
+        with connection.cursor() as cursor:
+            cursor.execute(sql, [classId,courseId])
+            connection.commit()
+        return {"msg": "删除成功"}
+
+    @staticmethod
+    @jwt_required(role_required=2)
+    def update_course_from_excel(payload, data):
+        with transaction.atomic():
+            sql = """
+                select 
+                class_id,
+                course_id
+                from ljj_courseoffering
+                """
+            result = safe_sql(sql)
+            class_course = [(item['class_id'], item['course_id']) for item in result]
+            params = [
+                [
+                    data.loc[i, "班级号"],
+                    data.loc[i, "课程号"],
+                    data.loc[i, "教师号"],
+                ] for i in range(len(data))
+            ]
+            for item in params:
+                if (item[0], item[1]) in class_course:
+                    sql = """
+                        update ljj_courseoffering
+                        set teacher_id = %s
+                        where Class_id = %s and course_id = %s
+                    """
+                    safe_sql(sql, [item[2], item[0], item[1]])
+                else:
+                    sql = """
+                        insert into ljj_courseoffering values (%s,%s,%s)
+                    """
+                    safe_sql(sql, [item[0], item[1], item[2]])
+            return {"code": 200, "msg": "更新成功"}
