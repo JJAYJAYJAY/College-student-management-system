@@ -280,6 +280,50 @@ class TeacherService:
             """
             result = safe_sql(sql, [classId, courseId])
             response["studentsScore"] = convert_array_keys_to_camel_case(result)
+            sql = """
+                select
+                    round(avg(grade),2) as average_grade,
+                    max(grade) as max_grade,
+                    min(grade) as min_grade
+                from ljj_studentcourse 
+                    join ljj_grade on 
+                    ljj_studentcourse.student_id = ljj_grade.student_id and 
+                    ljj_studentcourse.course_id = ljj_grade.course_id
+                    join ljj_class on ljj_studentcourse.class_id = ljj_class.class_id
+                where ljj_studentcourse.class_id = %s and ljj_studentcourse.course_id = %s
+            """
+            result = safe_sql(sql, [classId, courseId])
+            response["scoreTotalData"] = result[0]
+
+            sql = """
+            SELECT
+                COUNT(ljj_studentcourse.Student_id) AS count,
+                CASE
+                    WHEN grade >= 0 AND grade < 60 THEN '0-60'
+                    WHEN grade >= 60 AND grade < 65 THEN '60-65'
+                    WHEN grade >= 65 AND grade < 70 THEN '65-70'
+                    WHEN grade >= 70 AND grade < 75 THEN '70-75'
+                    WHEN grade >= 75 AND grade < 80 THEN '75-80'
+                    WHEN grade >= 80 AND grade < 85 THEN '80-85'
+                    WHEN grade >= 85 AND grade < 90 THEN '85-90'
+                    WHEN grade >= 90 AND grade < 95 THEN '90-95'
+                    WHEN grade >= 95 AND grade <= 100 THEN '95-100'
+                    when grade is null then '未录入'
+                END AS grade_range
+            FROM ljj_studentcourse 
+            JOIN ljj_grade 
+                ON ljj_studentcourse.student_id = ljj_grade.student_id 
+                AND ljj_studentcourse.course_id = ljj_grade.course_id
+            JOIN ljj_class 
+                ON ljj_studentcourse.class_id = ljj_class.class_id
+            WHERE ljj_studentcourse.class_id = %s 
+                AND ljj_studentcourse.course_id = %s
+            GROUP BY grade_range
+            ORDER BY grade_range;
+            """
+            result = safe_sql(sql, [classId, courseId])
+            response["gradeDistribution"] = convert_array_keys_to_camel_case(result)
+
         return response
 
     @staticmethod

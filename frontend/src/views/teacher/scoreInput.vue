@@ -29,15 +29,15 @@
           <a-descriptions bordered />
         </a-col>
         <div class="content">
-          <h2 style="margin-bottom: 20px">成绩详情</h2>
           <a-row>
             <a-col :span="6">
               <a-form-item label="选择课程" :disabled="isDisabled">
-                <a-select v-model="selectCourse">
+                <a-select v-model="selectCourse" @change="handleCourseChange">
                   <a-option v-for="item in courseList" :key="item" :value="item.courseId">{{item.courseName}}</a-option>
                 </a-select>
               </a-form-item>
             </a-col>
+            <a-col :span="1"></a-col>
             <a-col :span="6">
               <a-form-item label="筛选班级" :disabled="isDisabled">
                 <a-select :disabled="classDisabled" v-model="selectClass" @change="handleChange">
@@ -45,12 +45,21 @@
                 </a-select>
               </a-form-item>
             </a-col>
-            <a-col :span="8"></a-col>
+          </a-row>
+          <h2 style="margin-bottom: 20px">
+            该门成绩总览
+          </h2>
+          <a-descriptions style="margin-bottom: 20px" :data="scoreTotalData" size="large" bordered />
+          <chart style="margin-bottom: 20px;" :option="scoreChartOption" :size="{width:'100%',height:'300px'}"></chart>
+          <h2 style="margin-bottom: 20px">成绩详情</h2>
+          <a-row style="margin-bottom: 20px">
+            <a-col :span="19"></a-col>
             <a-col :span="2">
               <a href="/学生成绩导入模板.xlsx" download>
                 <a-button type="primary">下载导入模板</a-button>
               </a>
             </a-col>
+            <a-col :span="1"></a-col>
             <a-col :span="2">
              <a-button type="primary" @click="uploadVisible=true">Excel批量导入</a-button>
               <a-modal :visible="uploadVisible" @ok="handleOk" @cancel="handleUploadCancel" style="position: absolute">
@@ -116,6 +125,8 @@ import {h, onMounted, ref, watch} from "vue";
 import {teacherGetStudentGrade, updateStudentFromExcel, updateStudentGrade} from "@/api/teacher.js";
 import {IconSearch} from "@arco-design/web-vue/es/icon/index.js";
 import {Message} from "@arco-design/web-vue";
+import Chart from "@/components/Universal/chart.vue";
+import emitter from "@/utils/mitt.js";
 
 const columns = ref([
   {
@@ -215,16 +226,57 @@ const courseList=ref([])
 const uploadVisible=ref(false)
 const upload=ref()
 const token=sessionStorage.getItem('token')
+const scoreTotalData=ref(
+   [
+    {
+      label: "平均分",
+      value: 0
+    },
+    {
+      label: "最高分",
+      value: 0
+    },
+    {
+      label: "最低分",
+      value: 0
+    }
+  ]
+)
+const scoreChartOption = ref({
+  title: {
+    text: "成绩分布",
+    left: "center"
+  },
+  tooltip: {
+    trigger: 'item'
+  },
+  legend: {
+    orient: "vertical",
+    left:"30px"
+  },
+  series: [
+    {
+      type: "pie",
+      radius: ['40%', '70%'],
+      avoidLabelOverlap: false,
+      padAngle: 5,
+      itemStyle: {
+        borderRadius: 10
+      },
+      emphasis: {
+        label: {
+          show: true,
+          fontSize: 20,
+          fontWeight: 'bold'
+        }
+      },
+      data: []
+    }
+  ]
+})
 
 const handleChange=()=>{
-  teacherGetStudentGrade({
-    classId:selectClass.value,
-    courseId:selectCourse.value
-  }).then(res=>{
-    if(res.status===200){
-      scoreData.value=res.data.data.studentsScore
-    }
-  })
+  getAllData()
 }
 
 onMounted(()=>{
@@ -236,6 +288,10 @@ onMounted(()=>{
       courseList.value=res.data.data.courses
     }
   })
+
+  setTimeout(()=>{
+    emitter.emit('resize')
+  },1)
 })
 
 watch(selectCourse,()=>{
@@ -308,6 +364,7 @@ const handleEditButton = ()=>{
     }).then(res=>{
       if(res.status===200){
         Message.success(res.data.data.msg)
+        getAllData()
       }
       changeData.value=[]
     })
@@ -333,4 +390,68 @@ const onFileError=()=>{
   Message.error("上传失败")
 }
 
+const handleCourseChange=()=>{
+  scoreChartOption.value= {
+    series: {
+      data:[]
+    }
+  };
+  scoreTotalData.value=[
+    {
+      label: "平均分",
+      value: 0
+    },
+    {
+      label: "最高分",
+      value: 0
+    },
+    {
+      label: "最低分",
+      value: 0
+    }
+  ]
+  scoreData.value=[]
+}
+
+const getAllData=()=>{
+    teacherGetStudentGrade({
+      classId:selectClass.value,
+      courseId:selectCourse.value
+    }).then(res=>{
+      if(res.status===200){
+        scoreData.value=res.data.data.studentsScore
+        scoreTotalData.value= [
+          {
+            label: "平均分",
+            value: res.data.data.scoreTotalData.averageGrade
+          },
+          {
+            label: "最高分",
+            value: res.data.data.scoreTotalData.maxGrade
+          },
+          {
+            label: "最低分",
+            value: res.data.data.scoreTotalData.minGrade
+          }
+        ]
+        let scoreDistribution = []
+        console.log(res.data.data.scoreDistribution)
+        for (let item of res.data.data.gradeDistribution) {
+          console.log(item)
+          scoreDistribution.push({
+            name:item.gradeRange,
+            value:item.count
+          })
+        }
+        console.log(scoreDistribution)
+        scoreChartOption.value = {
+          series: [
+            {
+              data: scoreDistribution
+            }
+          ]
+        }
+      }
+    })
+}
 </script>

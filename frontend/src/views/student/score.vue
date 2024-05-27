@@ -227,7 +227,7 @@ const chartOption = ref({
       return value.min - 0.2
     },
     max:function (value) {
-      return value.max + 0.2
+      return value.max + 0.1
     }
   },
   series: [
